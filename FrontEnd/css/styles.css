@@ -1,0 +1,231 @@
+/* General Page Styling */
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    background-color: #f2f2f2;
+    font-family: Arial, sans-serif;
+}
+
+/* Centered Containers for Forms */
+.signup-container, 
+.login-container, 
+.browse-container,
+.register-container,
+.staff-container {
+    width: 90%;
+    max-width: 400px;
+    padding: 20px;
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    overflow-y: auto;
+}
+
+/* Adjust heading spacing */
+.signup-container h2, 
+.login-container h2, 
+.browse-container h2, 
+.register-container h2,
+.staff-container h2 {
+    margin-bottom: 20px;
+}
+
+/* Form Groups - Proper Spacing */
+.form-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 10px;
+    text-align: left;
+}
+
+/* Label Styling */
+.form-group label {
+    font-weight: bold;
+    margin-bottom: 3px;
+}
+
+/* Input Fields */
+.form-group input, 
+.form-group select, 
+.form-group textarea {
+    width: 100%;
+    max-width: 320px; /* Prevents stretching */
+    padding: 8px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background: #f9f9f9;
+}
+
+/* Textarea Styling */
+textarea {
+    height: 60px;
+    resize: vertical;
+}
+
+/* Buttons */
+button {
+    width: 80%;
+    max-width: 250px;
+    padding: 10px;
+    font-size: 14px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+/* Login Button - Blue */
+#login-button {
+    background-color: #007BFF;
+    color: white;
+}
+
+#login-button:hover {
+    background-color: #0056b3;
+}
+
+/* Sign Up Button - Green */
+#signup-button {
+    background-color: #4CAF50;
+    color: white;
+}
+
+#signup-button:hover {
+    background-color: #45a049;
+}
+
+/* Back to Login Button - Blue */
+#back-to-login {
+    background-color: #007BFF;
+    color: white;
+}
+
+#back-to-login:hover {
+    background-color: #0056b3;
+}
+
+/* Center both buttons in a row */
+.button-group {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+/* Browse Page - Program Listings */
+.browse-container {
+    width: 80%;
+    max-width: 600px;
+    margin: 50px auto;
+    padding: 20px;
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+/* Program Cards */
+.program-card {
+    background: #f8f8f8;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+    margin-bottom: 15px;
+    text-align: left;
+}
+
+/* Register Page - Center the container */
+.register-container {
+    width: 80%;
+    max-width: 600px;
+    margin: 50px auto;
+    padding: 20px;
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+/* Program Details */
+#program-details {
+    background: #f8f8f8;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+    margin-bottom: 15px;
+    text-align: left;
+}
+
+/* Confirm Registration Button */
+#confirm-register {
+    width: 100%;
+    max-width: 250px;
+    padding: 12px;
+    font-size: 16px;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+#confirm-register:hover {
+    background-color: #218838;
+}
+
+/* Register Button */
+#register-btn {
+    width: 100%;
+    max-width: 250px;
+    padding: 12px;
+    font-size: 16px;
+    background-color: #007BFF;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+#register-btn:hover {
+    background-color: #0056b3;
+}
+
+/* Staff Page - Center the form container */
+.staff-container {
+    width: 90%;
+    max-width: 500px;
+    height: 90vh;
+    margin: 20px auto;
+    padding: 20px;
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    overflow-y: auto; /* Allows scrolling */
+}
+
+/* Submit Button */
+.staff-container button {
+    width: 100%;
+    max-width: 250px;
+    padding: 10px;
+    font-size: 14px;
+    background-color: #007BFF;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+.staff-container button:hover {
+    background-color: #0056b3;
+}

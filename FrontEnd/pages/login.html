@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YMCA Login</title>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+    <div class="login-container">
+        <h2>YMCA Login</h2>
+        <form id="login-form">
+            <div class="form-group">
+                <label for="username">Username:</label>
+                <input type="text" id="username" placeholder="Enter Username" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" placeholder="Enter Password" required>
+            </div>
+
+            <button id="login-button" type="submit">Login</button>
+        </form>
+
+        <p id="error-message"></p>
+
+        <button id="signup-button" onclick="window.location.href='signup.html'">Sign Up</button>
+    </div>
+
+    <script src="../js/auth.js"></script>
+</body>
+</html>

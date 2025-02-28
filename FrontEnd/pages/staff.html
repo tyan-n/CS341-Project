@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff - Add Program</title>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+    <div class="staff-container">
+        <h2>Add a YMCA Program</h2>
+        <form id="add-program-form">
+            <div class="form-group">
+                <label for="name">Program Name:</label>
+                <input type="text" id="name" placeholder="Enter program name" required>
+            </div>
+
+            <div class="form-group">
+                <label for="description">Description:</label>
+                <textarea id="description" placeholder="Enter program description" required></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="start-date">Start Date:</label>
+                <input type="date" id="start-date" required>
+            </div>
+
+            <div class="form-group">
+                <label for="end-date">End Date:</label>
+                <input type="date" id="end-date" required>
+            </div>
+
+            <div class="form-group">
+                <label for="start-time">Start Time:</label>
+                <input type="time" id="start-time" required>
+            </div>
+
+            <div class="form-group">
+                <label for="end-time">End Time:</label>
+                <input type="time" id="end-time" required>
+            </div>
+
+            <div class="form-group">
+                <label for="location">Location:</label>
+                <input type="text" id="location" placeholder="Enter location" required>
+            </div>
+
+            <div class="form-group">
+                <label for="capacity">Maximum Participants:</label>
+                <input type="number" id="capacity" placeholder="Enter max participants" required>
+            </div>
+
+            <div class="form-group">
+                <label for="requirements">Participant Requirements:</label>
+                <input type="text" id="requirements" placeholder="Enter requirements (if any)">
+            </div>
+
+            <div class="form-group">
+                <label for="price-member">Price (YMCA Member):</label>
+                <input type="number" id="price-member" placeholder="Enter price for members" required>
+            </div>
+
+            <div class="form-group">
+                <label for="price-nonmember">Price (Non-Member):</label>
+                <input type="number" id="price-nonmember" placeholder="Enter price for non-members" required>
+            </div>
+
+            <button type="submit">Add Program</button>
+        </form>
+
+        <p id="message"></p>
+    </div>
+    
+    <script src="../js/staff.js"></script>
+</body>
+</html>

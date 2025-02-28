@@ -1,0 +1,57 @@
+YMCA Program Code Descriptions
+
+index.html
+The main entry point of the YMCA registration system.
+Provides a welcome screen with a link to the login page.
+
+login.html
+Contains the login form where users enter their credentials.
+Links to the signup page for new users.
+
+signup.html
+Allows users to create an account as either a member or non-member.
+Includes a form for entering username, password, and membership type.
+
+browse.html
+Displays a list of available YMCA programs.
+Allows users to view and select programs for registration.
+
+register.html
+Shows detailed information about a selected program.
+Allows users to confirm registration for a program.
+
+staff.html
+Used by YMCA staff to add new programs.
+Contains a form for entering program details like name, schedule, location, and pricing.
+
+styles.css
+Defines the styling and layout for all pages.
+Ensures consistency in design, form alignment, and responsiveness.
+
+auth.js
+Handles user authentication for login and signup.
+Sends login and signup requests to the backend API.
+
+browse.js
+Fetches and displays YMCA programs from the backend.
+Updates the UI dynamically based on available programs.
+
+register.js
+Retrieves program details for registration.
+Sends user registration requests to the backend.
+
+staff.js
+Allows YMCA staff to submit new programs to the backend.
+Sends program details to be stored in the database.
+
+signup.js
+Handles new user account creation.
+Sends signup data (username, password, membership type) to the backend.
+Displays success or error messages based on the response.
+
+program.js
+Manages the creation and retrieval of YMCA programs.
+Handles adding, modifying, and deleting program details.
+Sends program-related API requests to the backend.
+
+Sleep needed. More Caffiene required. 
