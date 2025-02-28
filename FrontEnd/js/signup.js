@@ -1,26 +1,27 @@
-document.getElementById("signup-form").addEventListener("submit", function(event) {
+document.getElementById("signup-form").addEventListener("submit", async function(event) {
     event.preventDefault();
 
     const username = document.getElementById("signup-username").value;
     const password = document.getElementById("signup-password").value;
     const membershipType = document.getElementById("membership-type").value;
 
-    // Mock database (store users in localStorage for now)
-    let users = JSON.parse(localStorage.getItem("users")) || [];
+    try {
+        const response = await fetch("http://localhost:5000/api/signup", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password, membershipType })
+        });
 
-    // Check if username already exists
-    if (users.some(user => user.username === username)) {
-        document.getElementById("signup-message").innerText = "Username already exists!";
-        return;
+        const data = await response.json();
+
+        if (response.ok) {
+            document.getElementById("signup-message").innerText = "Account created! Redirecting...";
+            setTimeout(() => window.location.href = "login.html", 2000);
+        } else {
+            document.getElementById("signup-message").innerText = data.error;
+        }
+    } catch (error) {
+        console.error("Signup failed:", error);
+        document.getElementById("signup-message").innerText = "Error connecting to server.";
     }
-
-    // Save new user
-    users.push({ username, password, membershipType });
-    localStorage.setItem("users", JSON.stringify(users));
-
-    document.getElementById("signup-message").innerText = "Account created! Redirecting to login...";
-    
-    setTimeout(() => {
-        window.location.href = "login.html"; // Redirect back to login page
-    }, 2000);
 });
