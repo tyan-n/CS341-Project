@@ -1,0 +1,16 @@
+# Node.js dependencies
+BackEnd/node_modules/
+
+# Environment variables
+.env
+
+# Logs
+logs/
+*.log
+npm-debug.log
+
+# OS/Editor-specific files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

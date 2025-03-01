@@ -15,7 +15,15 @@ document.getElementById("login-form").addEventListener("submit", async function(
 
         if (response.ok) {
             localStorage.setItem("token", data.token); // Store authentication token
-            window.location.href = "browse.html"; // Redirect user after login
+            localStorage.setItem("token", data.role); //Store authentication role
+
+            //compare if credentials match user or staff login
+            if(data.role === "user"){
+                window.location.href = "browse.html";
+            }
+            else if(data.role === "staff"){
+                window.location.href = "staff.html";
+            }
         } else {
             document.getElementById("error-message").innerText = data.error;
         }
