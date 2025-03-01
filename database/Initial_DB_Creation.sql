@@ -1,6 +1,7 @@
 -- Create Employee table
 CREATE TABLE IF NOT EXISTS Employee (
     EmpID        INTEGER PRIMARY KEY AUTOINCREMENT,
+    MemID	 INTEGER,
     FName        TEXT NOT NULL,
     LName        TEXT NOT NULL,
     MName        TEXT,
@@ -15,7 +16,8 @@ CREATE TABLE IF NOT EXISTS Employee (
     Wage         REAL NOT NULL CHECK (Wage >= 0),
     Email        TEXT NOT NULL UNIQUE,
     StartDate    DATE NOT NULL DEFAULT CURRENT_DATE,
-    Role         TEXT NOT NULL CHECK (Role IN ('Admin', 'Receptionist', 'Trainer', 'Janitor'))
+    Role         TEXT NOT NULL CHECK (Role IN ('Admin', 'Receptionist', 'Trainer', 'Janitor')),
+    FOREIGN KEY (MemID) REFERENCES Member(MemID)
 );
 
 CREATE TABLE IF NOT EXISTS Member (
