@@ -7,13 +7,13 @@ document.getElementById("add-program-form").addEventListener("submit", async fun
         endDate: document.getElementById("end-date").value,
         startTime: document.getElementById("start-time").value,
         endTime: document.getElementById("end-time").value,
-        location: document.getElementById("location").value,
+        location: parseInt(document.getElementById("location").value),
         description: document.getElementById("description").value,
-        capacity: document.getElementById("capacity").value,
+        capacity: parseInt(document.getElementById("capacity").value),
         priceMember: parseFloat(document.getElementById("price-member").value),
         priceNonMember: parseFloat(document.getElementById("price-nonmember").value)
     };
-
+    
     try {
         const response = await fetch("http://localhost:5000/api/programs", {
             method: "POST",
