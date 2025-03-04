@@ -58,23 +58,26 @@ CREATE TABLE IF NOT EXISTS Room (
 );
 
 CREATE TABLE IF NOT EXISTS Class (
-    ClassID  	 INTEGER PRIMARY KEY AUTOINCREMENT,
-    EmpID 		 INTEGER NOT NULL,
-    ClassSpec 	 TEXT NOT NULL CHECK (ClassSpec IN ('Basic', 'Premium')),
-    ClassName    TEXT NOT NULL,
-    RoomNumber   INTEGER NOT NULL,
-    Date DATE    NOT NULL,
-    Time TIME    NOT NULL,
-    Description  TEXT,
-	CurrCapacity INTEGER DEFAULT 0,
-    MemPrice     REAL NOT NULL, -- set automatically based on ClassSpec
-    NonMemPrice  REAL NOT NULL, -- set automatically
-    ClassType    TEXT NOT NULL CHECK (ClassType IN ('Yoga', 'Fitness', 'Aquatics', 'Family', 'Sports')),
-    AgeGroup     TEXT NOT NULL CHECK (AgeGroup IN ('Child', 'Teen', 'Adult', 'Senior', 'All ages')),
-	Status       TEXT CHECK (Status IN ('Open Spots', 'Fully Booked')) DEFAULT 'Open Spots',
+    ClassID       INTEGER PRIMARY KEY AUTOINCREMENT,
+    EmpID         INTEGER NOT NULL,
+    ClassSpec     TEXT NOT NULL CHECK (ClassSpec IN ('Basic', 'Premium')),
+    ClassName     TEXT NOT NULL,
+    RoomNumber    INTEGER NOT NULL,
+    StartDate     DATE NOT NULL,
+    EndDate       DATE NOT NULL,
+    StartTime     TIME NOT NULL,
+    EndTime       TIME NOT NULL,
+    Description   TEXT,
+    CurrCapacity  INTEGER DEFAULT 0,
+    MemPrice      REAL NOT NULL, -- set automatically based on ClassSpec
+    NonMemPrice   REAL NOT NULL, -- set automatically
+    ClassType     TEXT NOT NULL CHECK (ClassType IN ('Yoga', 'Fitness', 'Aquatics', 'Family', 'Sports')),
+    AgeGroup      TEXT NOT NULL CHECK (AgeGroup IN ('Child', 'Teen', 'Adult', 'Senior', 'All ages')),
+    Status        TEXT CHECK (Status IN ('Open Spots', 'Fully Booked')) DEFAULT 'Open Spots',
     FOREIGN KEY (EmpID) REFERENCES Employee(EmpID),
     FOREIGN KEY (RoomNumber) REFERENCES Room(RoomNumber)
 );
+
 
 CREATE TABLE IF NOT EXISTS Payment (
     PaymentID    INTEGER PRIMARY KEY AUTOINCREMENT,
