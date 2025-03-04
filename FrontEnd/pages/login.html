@@ -5,31 +5,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>YMCA Login</title>
     <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
     <div class="login-container">
-        <h2>YMCA Login</h2>
+        <span class="logo">😊</span> <!-- Smiley Face instead of YMCA Logo -->
+        <h2>Welcome to YMCA</h2>
+        <p class="login-subtext">Log in to access our programs and services.</p>
+
         <form id="login-form">
             <div class="form-group">
-                <label for="username">Username:</label>
-                <input type="text" id="username" placeholder="Enter Username" required>
+                <label for="username"><i class="fas fa-user"></i> Username:</label>
+                <input type="text" id="username" placeholder="Enter your username" required>
             </div>
 
             <div class="form-group">
-                <label for="password">Password:</label>
-                <input type="password" id="password" placeholder="Enter Password" required>
+                <label for="password"><i class="fas fa-lock"></i> Password:</label>
+                <input type="password" id="password" placeholder="Enter your password" required>
             </div>
 
-            <button id="login-button" type="submit">Login</button>
+            <button id="login-button" type="submit" class="ymca-button"><i class="fas fa-sign-in-alt"></i> Login</button>
         </form>
 
         <p id="error-message"></p>
 
-        <button id="signup-button" onclick="window.location.href='signup.html'">Sign Up</button>
+        <p class="signup-text">Don't have an account? <a href="signup.html">Sign up here</a></p>
     </div>
+
+    <footer class="ymca-footer">
+        <p>© 2025 YMCA. Empowering Communities.</p>
+    </footer>
 
     <script src="../js/auth.js"></script>
 </body>
 </html>
-
-

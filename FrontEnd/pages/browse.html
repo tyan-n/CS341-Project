@@ -5,13 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Browse YMCA Programs</title>
     <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-    <div class="browse-container">
-        <h2>Available YMCA Programs</h2>
-        <div id="program-list"></div>
-        <button id="register-btn" style="display: none;">Register for this Program</button>
-    </div>
+    <header class="ymca-header">
+        <span class="logo">😊</span> <!-- Smiley Face instead of YMCA Logo -->
+        <h1>YMCA Programs</h1>
+    </header>
+
+    <main class="browse-container">
+        <h2 class="browse-title">Explore Our Programs</h2>
+        <p class="browse-description">Join our wide range of fitness, sports, and wellness programs! Click a program to learn more and register.</p>
+
+        <div id="program-list" class="program-list"></div>
+
+        <button id="register-btn" class="ymca-button" style="display: none;">
+            <i class="fas fa-user-plus"></i> Register for this Program
+        </button>
+    </main>
+
+    <footer class="ymca-footer">
+        <p>© 2025 YMCA. Building Healthy Communities.</p>
+    </footer>
 
     <script src="../js/browse.js"></script>
 </body>

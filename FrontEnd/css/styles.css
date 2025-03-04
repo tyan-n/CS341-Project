@@ -1,52 +1,146 @@
 /* General Page Styling */
 body {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
+    font-family: 'Arial', sans-serif;
+    background: #f2f2f2;
     margin: 0;
-    background-color: #f2f2f2;
-    font-family: Arial, sans-serif;
+    padding: 0;
+    text-align: center;
 }
 
-/* Centered Containers for Forms */
+/* YMCA Header */
+.ymca-header {
+    background: #004F9F; /* YMCA Blue */
+    color: white;
+    padding: 20px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Smiley Face Logo Replacement */
+.ymca-header .logo {
+    font-size: 38px; /* Enlarged smiley face */
+}
+
+/* YMCA Footer */
+.ymca-footer {
+    background: #004F9F;
+    color: white;
+    padding: 20px 0;
+    font-size: 15px;
+    margin-top: 40px;
+    text-align: center;
+}
+
+/* Registration Page Container */
+.registration-container {
+    width: 90%;
+    max-width: 500px;
+    padding: 30px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0px 5px 8px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    margin: 50px auto;
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+/* Fade-in Animation */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Heading */
+.registration-container h2 {
+    color: #004F9F;
+    font-size: 24px;
+    margin-bottom: 15px;
+}
+
+/* Description */
+.registration-description {
+    font-size: 16px;
+    color: #555;
+    margin-bottom: 20px;
+}
+
+/* YMCA Button */
+.ymca-button {
+    display: inline-block;
+    background-color: #004F9F;
+    color: white;
+    padding: 12px 20px;
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 18px;
+    font-weight: bold;
+    transition: background 0.3s ease, transform 0.2s ease;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.ymca-button:hover {
+    background-color: #003B73;
+    transform: scale(1.05);
+}
+
+/* General Containers */
 .signup-container, 
 .login-container, 
 .browse-container,
 .register-container,
 .staff-container {
     width: 90%;
-    max-width: 400px;
-    padding: 20px;
-    background: #ffffff;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    max-width: 600px;
+    padding: 35px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0px 5px 8px rgba(0, 0, 0, 0.1);
     text-align: center;
-    overflow-y: auto;
+    margin: 50px auto;
+    animation: fadeIn 0.5s ease-in-out;
 }
 
-/* Adjust heading spacing */
-.signup-container h2, 
-.login-container h2, 
-.browse-container h2, 
-.register-container h2,
-.staff-container h2 {
+/* Heading Styles */
+h2 {
+    color: #004F9F;
+    margin-bottom: 18px;
+}
+
+/* Description Text */
+.staff-description {
+    font-size: 14px;
+    color: #555;
     margin-bottom: 20px;
 }
 
-/* Form Groups - Proper Spacing */
+/* Form Groups */
 .form-group {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    margin-bottom: 10px;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    width: 100%;
+    max-width: 450px;
+    margin-left: auto;
+    margin-right: auto;
     text-align: left;
 }
 
-/* Label Styling */
 .form-group label {
     font-weight: bold;
-    margin-bottom: 3px;
+    margin-bottom: 6px;
+    color: #333;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+}
+
+.form-group label i {
+    margin-right: 8px;
+    color: #004F9F;
 }
 
 /* Input Fields */
@@ -54,178 +148,123 @@ body {
 .form-group select, 
 .form-group textarea {
     width: 100%;
-    max-width: 320px; /* Prevents stretching */
-    padding: 8px;
-    font-size: 14px;
+    padding: 12px;
+    font-size: 16px;
     border: 1px solid #ccc;
-    border-radius: 5px;
+    border-radius: 6px;
     background: #f9f9f9;
+    transition: 0.3s ease-in-out;
+}
+
+.form-group input:focus, 
+.form-group select:focus, 
+.form-group textarea:focus {
+    border-color: #004F9F;
+    outline: none;
+    box-shadow: 0px 0px 6px rgba(0, 79, 159, 0.5);
 }
 
 /* Textarea Styling */
 textarea {
-    height: 60px;
+    height: 110px;
     resize: vertical;
 }
 
 /* Buttons */
 button {
-    width: 80%;
-    max-width: 250px;
-    padding: 10px;
-    font-size: 14px;
+    width: 100%;
+    max-width: 300px;
+    padding: 15px;
+    font-size: 17px;
+    font-weight: bold;
     border: none;
-    border-radius: 5px;
+    border-radius: 6px;
     cursor: pointer;
-    transition: background 0.3s ease;
+    transition: all 0.3s ease-in-out;
 }
 
-/* Login Button - Blue */
-#login-button {
-    background-color: #007BFF;
+/* Primary Buttons - YMCA Blue */
+.ymca-button {
+    background-color: #004F9F;
+    color: white;
+    transition: 0.3s;
+}
+
+.ymca-button:hover {
+    background-color: #003B73;
+    transform: scale(1.07);
+}
+
+/* Success Buttons - Green */
+.success-button {
+    background-color: #28a745;
     color: white;
 }
 
-#login-button:hover {
-    background-color: #0056b3;
+.success-button:hover {
+    background-color: #218838;
+    transform: scale(1.07);
 }
 
-/* Sign Up Button - Green */
-#signup-button {
-    background-color: #4CAF50;
+/* Warning Buttons - Orange */
+.warning-button {
+    background-color: #ff9800;
     color: white;
 }
 
-#signup-button:hover {
-    background-color: #45a049;
+.warning-button:hover {
+    background-color: #e68900;
+    transform: scale(1.07);
 }
 
-/* Back to Login Button - Blue */
-#back-to-login {
-    background-color: #007BFF;
+/* Error Buttons - Red */
+.danger-button {
+    background-color: #d9534f;
     color: white;
 }
 
-#back-to-login:hover {
-    background-color: #0056b3;
-}
-
-/* Center both buttons in a row */
-.button-group {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    margin-top: 10px;
+.danger-button:hover {
+    background-color: #c9302c;
+    transform: scale(1.07);
 }
 
 /* Browse Page - Program Listings */
 .browse-container {
-    width: 80%;
-    max-width: 600px;
+    width: 85%;
+    max-width: 950px;
     margin: 50px auto;
-    padding: 20px;
-    background: #ffffff;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    text-align: center;
+    padding: 25px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0px 5px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* Program Cards */
+.program-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+    gap: 22px;
+    margin-top: 25px;
+}
+
 .program-card {
-    background: #f8f8f8;
-    padding: 15px;
-    border-radius: 8px;
-    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
-    margin-bottom: 15px;
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease-in-out;
+    border-left: 6px solid #004F9F;
     text-align: left;
 }
 
-/* Register Page - Center the container */
-.register-container {
-    width: 80%;
-    max-width: 600px;
-    margin: 50px auto;
-    padding: 20px;
-    background: #ffffff;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    text-align: center;
+.program-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0px 7px 14px rgba(0, 0, 0, 0.2);
 }
 
-/* Program Details */
-#program-details {
-    background: #f8f8f8;
-    padding: 15px;
-    border-radius: 8px;
-    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
-    margin-bottom: 15px;
-    text-align: left;
-}
-
-/* Confirm Registration Button */
-#confirm-register {
-    width: 100%;
-    max-width: 250px;
-    padding: 12px;
-    font-size: 16px;
-    background-color: #28a745;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    margin-top: 10px;
-}
-
-#confirm-register:hover {
-    background-color: #218838;
-}
-
-/* Register Button */
-#register-btn {
-    width: 100%;
-    max-width: 250px;
-    padding: 12px;
-    font-size: 16px;
-    background-color: #007BFF;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    margin-top: 10px;
-}
-
-#register-btn:hover {
-    background-color: #0056b3;
-}
-
-/* Staff Page - Center the form container */
-.staff-container {
-    width: 90%;
-    max-width: 500px;
-    height: 90vh;
-    margin: 20px auto;
-    padding: 20px;
-    background: #ffffff;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    text-align: center;
-    overflow-y: auto; /* Allows scrolling */
-}
-
-/* Submit Button */
-.staff-container button {
-    width: 100%;
-    max-width: 250px;
-    padding: 10px;
-    font-size: 14px;
-    background-color: #007BFF;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    margin-top: 10px;
-}
-
-.staff-container button:hover {
-    background-color: #0056b3;
+/* Responsive Design */
+@media screen and (max-width: 768px) {
+    .program-list {
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    }
 }

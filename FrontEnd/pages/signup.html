@@ -5,23 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign Up</title>
     <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
+    <header class="ymca-header">
+        <span class="logo">😊</span> <!-- Smiley Face as a Temporary Logo -->
+        <h1>Join the YMCA Community</h1>
+    </header>
+
     <div class="signup-container">
-        <h2>Sign Up for YMCA</h2>
+        <h2>Create Your YMCA Account</h2>
+        <p class="signup-description">Sign up to access exclusive YMCA programs and resources.</p>
+
         <form id="signup-form">
             <div class="form-group">
-                <label for="signup-username">Choose a Username:</label>
-                <input type="text" id="signup-username" required>
+                <label for="signup-username"><i class="fas fa-user"></i> Choose a Username:</label>
+                <input type="text" id="signup-username" placeholder="Enter your username" required>
             </div>
 
             <div class="form-group">
-                <label for="signup-password">Choose a Password:</label>
-                <input type="password" id="signup-password" required>
+                <label for="signup-password"><i class="fas fa-lock"></i> Choose a Password:</label>
+                <input type="password" id="signup-password" placeholder="Enter a strong password" required>
             </div>
 
             <div class="form-group">
-                <label for="membership-type">Membership Type:</label>
+                <label for="membership-type"><i class="fas fa-id-card"></i> Membership Type:</label>
                 <select id="membership-type" required>
                     <option value="member">Member</option>
                     <option value="non-member">Non-Member</option>
@@ -29,13 +37,17 @@
             </div>
 
             <div class="button-group">
-                <button id="signup-button" type="submit">Create Account</button>
-                <button id="back-to-login" type="button" onclick="window.location.href='login.html'">Back to Login</button>
+                <button id="signup-button" type="submit" class="success-button"><i class="fas fa-user-plus"></i> Create Account</button>
+                <button id="back-to-login" type="button" class="ymca-button" onclick="window.location.href='login.html'"><i class="fas fa-arrow-left"></i> Back to Login</button>
             </div>
         </form>
 
         <p id="signup-message"></p>
     </div>
+
+    <footer class="ymca-footer">
+        <p>© 2025 YMCA. Empowering Communities. Building Healthy Lives.</p>
+    </footer>
 
     <script src="../js/signup.js"></script>
 </body>

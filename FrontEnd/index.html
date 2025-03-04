@@ -5,50 +5,87 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>YMCA Registration</title>
     <style>
+        /* General Page Styling */
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            text-align: center;
+            font-family: 'Arial', sans-serif;
+            background: #f4f4f4;
             margin: 0;
             padding: 0;
+            text-align: center;
         }
+
+        /* Centered Container */
         .container {
-            margin-top: 100px;
-            padding: 20px;
+            margin-top: 80px;
+            padding: 30px;
             background: white;
-            border-radius: 10px;
-            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.1);
             display: inline-block;
-            width: 50%;
+            width: 90%;
+            max-width: 450px;
+            animation: fadeIn 0.5s ease-in-out;
         }
+
+        /* Fade-in Animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Heading */
         h2 {
-            color: #2c3e50;
+            color: #004F9F;
+            font-size: 24px;
+            margin-bottom: 15px;
         }
+
+        /* Description Text */
         p {
-            font-size: 18px;
-            margin-top: 10px;
+            font-size: 16px;
+            color: #555;
+            margin-bottom: 20px;
         }
-        a {
+
+        /* Styled Button */
+        .ymca-button {
             display: inline-block;
-            background-color: #3498db;
+            background-color: #004F9F;
             color: white;
-            padding: 10px 20px;
+            padding: 12px 20px;
             text-decoration: none;
-            border-radius: 5px;
+            border-radius: 8px;
             font-size: 18px;
-            margin-top: 10px;
-            transition: background 0.3s ease;
+            font-weight: bold;
+            transition: background 0.3s ease, transform 0.2s ease;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
         }
-        a:hover {
-            background-color: #2980b9;
+
+        .ymca-button:hover {
+            background-color: #003B73;
+            transform: scale(1.05);
+        }
+
+        /* Footer */
+        .ymca-footer {
+            margin-top: 50px;
+            background: #004F9F;
+            color: white;
+            padding: 15px 0;
+            font-size: 14px;
+            text-align: center;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h2>Welcome to YMCA Program Registration</h2>
-        <p>Register for exciting wellness and recreational programmes today!</p>
-        <a href="pages/login.html">Login to Your Account</a>
+        <p>Join our community and register for exciting wellness and recreational programmes today!</p>
+        <a href="pages/login.html" class="ymca-button">Login to Your Account</a>
     </div>
+
+    <footer class="ymca-footer">
+        <p>© 2025 YMCA. Empowering Communities. Building Healthy Lives.</p>
+    </footer>
 </body>
 </html>

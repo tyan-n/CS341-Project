@@ -5,14 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register for a Program</title>
     <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-    <div class="register-container">
-        <h2>Register for YMCA Program</h2>
-        <div id="program-details"></div>
-        <button id="confirm-register">Confirm Registration</button>
+    <header class="ymca-header">
+        <span class="logo">😊</span> <!-- Smiley Face as a Temporary Logo -->
+        <h1>Register for a YMCA Program</h1>
+    </header>
+
+    <main class="register-container">
+        <h2 class="register-title">Program Details</h2>
+        <p class="register-description">You're just one step away from joining an amazing YMCA program! Review the details and confirm your registration.</p>
+
+        <div id="program-details" class="program-details-box"></div>
+
+        <button id="confirm-register" class="success-button">
+            <i class="fas fa-check-circle"></i> Confirm Registration
+        </button>
+
         <p id="registration-message"></p>
-    </div>
+    </main>
+
+    <footer class="ymca-footer">
+        <p>© 2025 YMCA. Empowering Communities. Building Healthy Lives.</p>
+    </footer>
 
     <script src="../js/register.js"></script>
 </body>
