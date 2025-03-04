@@ -3,13 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Staff - Add Program</title>
+    <title>Staff - Add YMCA Program</title>
     <link rel="stylesheet" href="../css/styles.css">
 </head>
 <body>
     <div class="staff-container">
         <h2>Add a YMCA Program</h2>
         <form id="add-program-form">
+            <!-- Staff ID (hidden or auto-filled) -->
+            <input type="hidden" id="emp-id" value="123"> <!-- Example: Pre-filled with logged-in staff ID -->
+
+            <div class="form-group">
+                <label for="class-spec">Class Specification:</label>
+                <select id="class-spec" required>
+                    <option value="Basic">Basic</option>
+                    <option value="Premium">Premium</option>
+                </select>
+            </div>
+
             <div class="form-group">
                 <label for="name">Program Name:</label>
                 <input type="text" id="name" placeholder="Enter program name" required>
@@ -41,18 +52,48 @@
             </div>
 
             <div class="form-group">
-                <label for="location">Location:</label>
-                <input type="text" id="location" placeholder="Enter location" required>
+                <label for="frequency">Number of Sessions:</label>
+                <input type="number" id="frequency" min="1" placeholder="Enter number of times this class will happen" required>
+            </div>
+
+            <div class="form-group">
+                <label for="room-number">Room Number:</label>
+                <input type="number" id="room-number" placeholder="Enter room number" required>
+            </div>
+
+            <div class="form-group">
+                <label for="class-type">Class Type:</label>
+                <select id="class-type" required>
+                    <option value="Yoga">Yoga</option>
+                    <option value="Fitness">Fitness</option>
+                    <option value="Aquatics">Aquatics</option>
+                    <option value="Family">Family</option>
+                    <option value="Sports">Sports</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="age-group">Age Group:</label>
+                <select id="age-group" required>
+                    <option value="Child">Child</option>
+                    <option value="Teen">Teen</option>
+                    <option value="Adult">Adult</option>
+                    <option value="Senior">Senior</option>
+                    <option value="All ages">All ages</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="status">Class Status:</label>
+                <select id="status">
+                    <option value="Open Spots">Open Spots</option>
+                    <option value="Fully Booked">Fully Booked</option>
+                </select>
             </div>
 
             <div class="form-group">
                 <label for="capacity">Maximum Participants:</label>
                 <input type="number" id="capacity" placeholder="Enter max participants" required>
-            </div>
-
-            <div class="form-group">
-                <label for="requirements">Participant Requirements:</label>
-                <input type="text" id="requirements" placeholder="Enter requirements (if any)">
             </div>
 
             <div class="form-group">
