@@ -67,6 +67,7 @@ CREATE TABLE IF NOT EXISTS Class (
     EndDate       DATE NOT NULL,
     StartTime     TIME NOT NULL,
     EndTime       TIME NOT NULL,
+    Frequency     INTEGER NOT NULL CHECK (Frequency > 0), -- Number of occurrences
     Description   TEXT,
     CurrCapacity  INTEGER DEFAULT 0,
     MemPrice      REAL NOT NULL, -- set automatically based on ClassSpec
@@ -77,6 +78,7 @@ CREATE TABLE IF NOT EXISTS Class (
     FOREIGN KEY (EmpID) REFERENCES Employee(EmpID),
     FOREIGN KEY (RoomNumber) REFERENCES Room(RoomNumber)
 );
+
 
 
 CREATE TABLE IF NOT EXISTS Payment (
