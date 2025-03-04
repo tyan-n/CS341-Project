@@ -70,11 +70,18 @@
         .ymca-footer {
             margin-top: 50px;
             background: #004F9F;
-            color: white;
+            color: white !important; /* Forces white text */
             padding: 15px 0;
             font-size: 14px;
             text-align: center;
         }
+
+        /* Ensures all footer text is white */
+        .ymca-footer p {
+            color: white !important; /* Overrides global paragraph styling */
+            margin: 0;
+        }
+
     </style>
 </head>
 <body>
@@ -87,5 +94,6 @@
     <footer class="ymca-footer">
         <p>© 2025 YMCA. Empowering Communities. Building Healthy Lives.</p>
     </footer>
+    
 </body>
 </html>

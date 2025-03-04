@@ -5,6 +5,9 @@ body {
     margin: 0;
     padding: 0;
     text-align: center;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh; /* Ensures full height */
 }
 
 /* YMCA Header */
@@ -24,14 +27,26 @@ body {
     font-size: 38px; /* Enlarged smiley face */
 }
 
-/* YMCA Footer */
+/* YMCA Footer - Standardized Across All Pages */
 .ymca-footer {
-    background: #004F9F;
-    color: white;
+    background: #004F9F; /* YMCA Blue */
+    color: white !important; /* Ensures white text */
     padding: 20px 0;
     font-size: 15px;
-    margin-top: 40px;
     text-align: center;
+    margin-top: auto; /* Pushes footer to the bottom */
+    width: 100%;
+}
+
+/* Ensures all footer text is white */
+.ymca-footer p {
+    color: white !important;
+    margin: 0;
+}
+
+/* Ensures page content fills available space before the footer */
+main {
+    flex: 1;
 }
 
 /* Registration Page Container */
@@ -192,39 +207,6 @@ button {
 
 .ymca-button:hover {
     background-color: #003B73;
-    transform: scale(1.07);
-}
-
-/* Success Buttons - Green */
-.success-button {
-    background-color: #28a745;
-    color: white;
-}
-
-.success-button:hover {
-    background-color: #218838;
-    transform: scale(1.07);
-}
-
-/* Warning Buttons - Orange */
-.warning-button {
-    background-color: #ff9800;
-    color: white;
-}
-
-.warning-button:hover {
-    background-color: #e68900;
-    transform: scale(1.07);
-}
-
-/* Error Buttons - Red */
-.danger-button {
-    background-color: #d9534f;
-    color: white;
-}
-
-.danger-button:hover {
-    background-color: #c9302c;
     transform: scale(1.07);
 }
 
