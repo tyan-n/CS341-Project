@@ -20,6 +20,26 @@ const db = new sqlite3.Database("../database/YMCA_DB_cs341.db", sqlite3.OPEN_REA
     }
 });
 
+const jwt = require("jsonwebtoken");
+
+// Middleware to authenticate token
+function authenticateToken(req, res, next) {
+    const authHeader = req.headers["authorization"];
+    const token = authHeader && authHeader.split(" ")[1]; // Extract token from "Bearer <token>"
+
+    if (!token) {
+        return res.status(401).json({ error: "Access denied. No token provided." });
+    }
+
+    jwt.verify(token, "your_secret_key", (err, user) => {
+        if (err) return res.status(403).json({ error: "Invalid or expired token." });
+
+        req.user = user; // Store user data in request
+        next();
+    });
+}
+
+
 // Serve static frontend files
 app.use(express.static(path.join(__dirname, "../FrontEnd")));
 
@@ -108,17 +128,24 @@ app.post("/api/programs", async (req, res) => {
         return res.status(400).json({ error: "Missing required fields" });
     }
 
-    const sql = "INSERT INTO Class (ClassName, Description, RoomNumber, Date, Time, CurrCapacity, MemPrice, NonMemPrice) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+    const sql = "INSERT INTO Class (ClassName, ClassSpec, Description, Frequency, RoomNumber, StartDate, EndDate, StartTime, EndTime, CurrCapacity, MemPrice, NonMemPrice, AgeGroup, EmpID, ClassType) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     db.run(sql, [
         programData.name, 
+        programData.classSpec,
         programData.description, 
+        programData.frequency,
         programData.location, 
         programData.startDate, 
+        programData.endDate,
         programData.startTime, 
+        programData.endTime,
         programData.capacity, 
         programData.priceMember, 
-        programData.priceNonMember
+        programData.priceNonMember,
+        programData.ageGroup,
+        1,
+        programData.classType
     ], function (err) {
         if (err) {
             console.error("Error inserting into database:", err);
@@ -132,7 +159,8 @@ app.get("/api/programs", (req, res) => {
     const sql = `SELECT 
         ClassName AS name, 
         Description AS description, 
-        Time AS startTime, 
+        StartTime AS startTime, 
+        EndTime AS endTime,
         RoomNumber AS location, 
         CurrCapacity AS capacity, 
         MemPrice AS priceMember, 
@@ -149,6 +177,48 @@ app.get("/api/programs", (req, res) => {
 
         res.json(rows);
     });
+});
+
+app.post("/api/register", authenticateToken, async (req, res) => {
+    const { programId } = req.body;
+    const userEmail = req.user.email; // Extract user email from token
+
+    try {
+        const db = await openDb();
+
+        // Check if user is a Member
+        const member = await db.get("SELECT MemID FROM Member WHERE Email = ?", [userEmail]);
+
+        // Check if user is a Non-Member
+        const nonMember = await db.get("SELECT NonMemID FROM NonMember WHERE Email = ?", [userEmail]);
+
+        if (!member && !nonMember) {
+            return res.status(404).json({ error: "User not found in Member or NonMember table." });
+        }
+
+        // Register based on user type
+        if (member) {
+            await db.run(
+                "INSERT INTO Registrations (MemID, ClassID) VALUES (?, ?)",
+                [member.memberId, programId]
+            );
+        } else if (nonMember) {
+            await db.run(
+                "INSERT INTO Registrations (NonMemID, ClassID) VALUES (?, ?)",
+                [nonMember.nonMemberId, programId]
+            );
+        }
+
+        res.json({ message: "Registration successful!" });
+
+    } catch (error) {
+        if (error.code === "SQLITE_CONSTRAINT") {
+            res.status(400).json({ error: "You are already registered for this program." });
+        } else {
+            console.error("Error registering user:", error);
+            res.status(500).json({ error: "Database error" });
+        }
+    }
 });
 
 

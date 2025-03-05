@@ -60,4 +60,27 @@ document.getElementById("signup-form").addEventListener("submit", async function
         console.error("Signup failed:", error);
         document.getElementById("signup-message").innerText = "Error connecting to server.";
     }
+
+    const jwt = require("jsonwebtoken");
+
+app.post("/api/login", async (req, res) => {
+    const { email, password } = req.body;
+    const db = await openDb();
+
+    // Check if user exists in Member table
+    const member = await db.get("SELECT memberId FROM Member WHERE email = ?", [email]);
+
+    // Check if user exists in NonMember table
+    const nonMember = await db.get("SELECT nonMemberId FROM NonMember WHERE email = ?", [email]);
+
+    if (!member && !nonMember) {
+        return res.status(401).json({ error: "Invalid email or password." });
+    }
+
+    // Generate token with user email
+    const token = jwt.sign({ email }, "your_secret_key", { expiresIn: "1h" });
+
+    res.json({ token });
+});
+
 });

@@ -29,20 +29,26 @@ document.addEventListener("DOMContentLoaded", async function() {
 
     // Register User for Program
     registerButton.addEventListener("click", async function() {
-        const token = localStorage.getItem("token"); // Use stored authentication token
-
+        const token = localStorage.getItem("token");
+    
+        if (!token) {
+            alert("Please log in before registering.");
+            window.location.href = `login.html?redirect=register.html?programId=${programId}`;
+            return;
+        }
+    
         try {
             const response = await fetch("http://localhost:5000/api/register", {
                 method: "POST",
                 headers: { 
                     "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}` // Attach token for authentication
+                    "Authorization": `Bearer ${token}`
                 },
                 body: JSON.stringify({ programId })
             });
-
+    
             const data = await response.json();
-
+    
             if (response.ok) {
                 registrationMessage.innerText = "Registration successful!";
                 registerButton.disabled = true;
