@@ -20,11 +20,32 @@ body {
     justify-content: center;
     gap: 12px;
     box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    position: relative; /* Needed for absolute positioning of Sign-In button */
 }
 
 /* Smiley Face Logo Replacement */
 .ymca-header .logo {
     font-size: 38px; /* Enlarged smiley face */
+}
+
+/* Top-right Sign In/Register Button */
+#signin-button {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: #004F9F;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.3s ease-in-out;
+}
+
+#signin-button:hover {
+    background: #003B73;
 }
 
 /* YMCA Footer - Standardized Across All Pages */

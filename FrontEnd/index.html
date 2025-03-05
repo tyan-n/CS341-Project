@@ -47,9 +47,9 @@
             margin-bottom: 20px;
         }
 
-        /* Styled Button */
+        /* Styled Buttons */
         .ymca-button {
-            display: inline-block;
+            display: block;
             background-color: #004F9F;
             color: white;
             padding: 12px 20px;
@@ -59,6 +59,9 @@
             font-weight: bold;
             transition: background 0.3s ease, transform 0.2s ease;
             box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+            margin: 10px auto; /* Ensures spacing between buttons */
+            width: 80%;
+            max-width: 250px;
         }
 
         .ymca-button:hover {
@@ -81,19 +84,22 @@
             color: white !important; /* Overrides global paragraph styling */
             margin: 0;
         }
-
     </style>
 </head>
 <body>
     <div class="container">
         <h2>Welcome to YMCA Program Registration</h2>
-        <p>Join our community and register for exciting wellness and recreational programmes today!</p>
-        <a href="pages/login.html" class="ymca-button">Login to Your Account</a>
+        <p>Join our community and register for exciting wellness and recreational programs today!</p>
+
+        <!-- Login Button -->
+        <a href="pages/login.html" class="ymca-button"><i class="fas fa-sign-in-alt"></i> Login to Your Account</a>
+
+        <!-- Browse Classes Button -->
+        <a href="pages/browse.html" class="ymca-button"><i class="fas fa-book-open"></i> Browse Classes</a>
     </div>
 
     <footer class="ymca-footer">
         <p>© 2025 YMCA. Empowering Communities. Building Healthy Lives.</p>
     </footer>
-    
 </body>
 </html>
