@@ -79,30 +79,6 @@ CREATE TABLE IF NOT EXISTS Class (
     FOREIGN KEY (RoomNumber) REFERENCES Room(RoomNumber)
 );
 
-
-
-CREATE TABLE IF NOT EXISTS Payment (
-    PaymentID    INTEGER PRIMARY KEY AUTOINCREMENT,
-    MemID		 INTEGER,
-	NonMemID 	 INTEGER,
-    Amount 		 REAL NOT NULL,
-    DueDate 	 DATE NOT NULL,
-    PaymentType  TEXT CHECK (PaymentType IN ('Membership Fee', 'Class Fee', 'Late Fee')) NOT NULL,
-    Status 		 TEXT CHECK (Status IN ('Paid', 'Owed', 'Past Due')) NOT NULL,
-    FOREIGN KEY (MemID) REFERENCES Member(MemID),
-    FOREIGN KEY (NonMemID) REFERENCES NonMember(NonMemID),
-    CHECK (MemID IS NOT NULL AND NonMemID IS NULL OR MemID IS NULL AND NonMemID IS NOT NULL)--only one filled at a time
-);
-
-CREATE TABLE IF NOT EXISTS Login (
-    LoginID     INTEGER PRIMARY KEY AUTOINCREMENT,
-    MemID       INTEGER,                -- Foreign key to Member table
-    Username    TEXT NOT NULL UNIQUE,   -- Username for login
-    Password    TEXT NOT NULL,          -- Hashed password
-    UserType    TEXT CHECK(UserType IN ('Member', 'Employee', 'Admin')) NOT NULL,  -- Role of user
-    FOREIGN KEY (MemID) REFERENCES Member(MemID)
-);
-
 CREATE TABLE IF NOT EXISTS Register ( --relationship between member/nonmember and class
     RegisterID    INTEGER PRIMARY KEY AUTOINCREMENT,
     ClassID       INTEGER NOT NULL,
@@ -129,19 +105,6 @@ CREATE TABLE IF NOT EXISTS Teach ( --relationship between employee and class
     PRIMARY KEY (ClassID, EmpID),
     FOREIGN KEY (ClassID) REFERENCES Class(ClassID),
     FOREIGN KEY (EmpID) REFERENCES Employee(EmpID)
-);
-
-CREATE TABLE IF NOT EXISTS Pay ( --relationship between member/nonmember and payment
-    PaymentID 	 INTEGER,
-    MemID 		 INTEGER,
-	NonMemID  	 INTEGER, 
-    PaidOnDate   DATE NOT NULL,
-    Amount 		 REAL NOT NULL,
-    PRIMARY KEY (PaymentID, MemID),
-    FOREIGN KEY (PaymentID) REFERENCES Payment(PaymentID),
-    FOREIGN KEY (MemID) REFERENCES Member(MemID),
-    FOREIGN KEY (NonMemID) REFERENCES NonMember(NonMemID),
-    CHECK (MemID IS NOT NULL AND NonMemID IS NULL OR MemID IS NULL AND NonMemID IS NOT NULL)
 );
 
 CREATE TRIGGER SetClassPrices
