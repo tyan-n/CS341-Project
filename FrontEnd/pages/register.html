@@ -15,9 +15,20 @@
         <h1>Register for a YMCA Program</h1>
 
         <!-- Sign In / Register Button -->
-        <button id="signin-button" onclick="window.location.href='login.html'">
+        <button id="signin-button">
             <i class="fas fa-user"></i> Sign In / Register
         </button>
+        
+        <script>
+        document.getElementById("signin-button").addEventListener("click", function() {
+            // Clear token
+            localStorage.removeItem("token");
+            localStorage.removeItem("role");
+        
+            // If this file is in /pages, go UP one directory to index.html
+            window.location.href = "../index.html";
+        });
+        </script>
     </header>
 
     <main class="register-container">

@@ -16,9 +16,20 @@
         <h1>YMCA Programs</h1>
 
         <!-- Sign In / Register Button -->
-        <button id="signin-button" onclick="window.location.href='login.html'">
+        <button id="signin-button">
             <i class="fas fa-user"></i> Sign In / Register
         </button>
+        
+        <script>
+        document.getElementById("signin-button").addEventListener("click", function() {
+            // Clear any existing token (and role, if you store that too)
+            localStorage.removeItem("token");
+            localStorage.removeItem("role");
+        
+            // Redirect to the login page
+            window.location.href = "/../index.html";
+        });
+        </script>
     </header>
 
     <main class="browse-container">
