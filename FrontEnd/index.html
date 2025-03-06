@@ -1,37 +1,42 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YMCA Registration</title>
-    <style>
-        /* ... your existing styles ... */
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>YMCA Registration</title>
+
+  <!-- Link to your external stylesheet -->
+  <!-- Adjust the path (e.g., "css/styles.css") if it's located elsewhere -->
+  <link rel="stylesheet" href="css/styles.css">
+
+  <!-- Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-    <!-- If you want the logout button on the main page as well, add a header: -->
-    <header class="ymca-header">
-        <button id="logout-button" class="logout-btn" style="margin-right: 20px;">
-            <i class="fas fa-sign-out-alt"></i> Log Out
-        </button>
-    </header>
+  <header class="ymca-header">
+    <!-- (Removed logout button, as you no longer want logout functionality) -->
+  </header>
 
-    <div class="container">
-        <h2>Welcome to YMCA Program Registration</h2>
-        <p>Join our community and register for exciting wellness and recreational programs today!</p>
+  <div class="container">
+    <h2>Welcome to YMCA Program Registration</h2>
+    <p>Join our community and register for exciting wellness and recreational programs today!</p>
 
-        <!-- Login Button -->
-        <a href="pages/login.html" class="ymca-button"><i class="fas fa-sign-in-alt"></i> Login to Your Account</a>
+    <!-- Login Button -->
+    <a href="pages/login.html" class="ymca-button">
+      <i class="fas fa-sign-in-alt"></i> Login to Your Account
+    </a>
 
-        <!-- Browse Classes Button -->
-        <a href="pages/browse.html" class="ymca-button"><i class="fas fa-book-open"></i> Browse Classes</a>
-    </div>
+    <!-- Browse Classes Button -->
+    <a href="pages/browse.html" class="ymca-button">
+      <i class="fas fa-book-open"></i> Browse Classes
+    </a>
+  </div>
 
-    <footer class="ymca-footer">
-        <p>© 2025 YMCA. Empowering Communities. Building Healthy Lives.</p>
-    </footer>
+  <footer class="ymca-footer">
+    <p>© 2025 YMCA. Empowering Communities. Building Healthy Lives.</p>
+  </footer>
 
-    <!-- If you added a logout button above, include the script: -->
-    <script src="pages/logout.js"></script>
+  <!-- If you have a specific JS file for the index page, add it here. Otherwise, omit. -->
+  <!-- <script src="js/index.js"></script> -->
 </body>
 </html>

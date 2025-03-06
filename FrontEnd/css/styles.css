@@ -20,7 +20,7 @@ body {
     justify-content: center;
     gap: 12px;
     box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-    position: relative; /* Needed for absolute positioning of Sign-In/Logout buttons */
+    position: relative; /* For sign-in button absolute positioning */
 }
 
 /* Smiley Face Logo Replacement */
@@ -48,25 +48,7 @@ body {
     background: #003B73;
 }
 
-/* Top-left Logout Button */
-#logout-button {
-    position: absolute;
-    top: 20px;
-    left: 20px;
-    background: #c33;
-    color: white;
-    padding: 10px 15px;
-    border: none;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background 0.3s ease-in-out;
-}
-
-#logout-button:hover {
-    background: #a00;
-}
+/* Removed #logout-button rules entirely */
 
 /* YMCA Footer - Standardized Across All Pages */
 .ymca-footer {
