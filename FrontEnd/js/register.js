@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     const registerButton = document.getElementById("confirm-register");
     const registrationMessage = document.getElementById("registration-message");
 
-    //  Fetch and display class details
+    // 1) Fetch and display class details
     try {
         const response = await fetch(`http://localhost:5000/api/programs/${programId}`);
         const program = await response.json();
@@ -29,10 +29,11 @@ document.addEventListener("DOMContentLoaded", async function () {
         programDetails.innerHTML = "<p>❌ Error loading program details.</p>";
     }
 
-    //  Register User for Program
+    // 2) Register User for Program
     registerButton.addEventListener("click", async function () {
         const token = localStorage.getItem("token");
 
+        // If no token, redirect to login with a "redirect" parameter
         if (!token) {
             alert("Please log in before registering.");
             window.location.href = `login.html?redirect=register.html?programId=${programId}`;

@@ -1,3 +1,5 @@
+// server.js
+
 const express = require("express");
 const path = require("path");
 const cors = require("cors");
@@ -90,11 +92,13 @@ app.post("/api/login", (req, res) => {
             // (Assuming staff has a YMCA org email; otherwise treat as "user")
             const role = user.Email.endsWith("@ymca.org") ? "staff" : "user";
 
-            // Optionally generate a token here if you need it:
-            // const token = jwt.sign({ email: user.Email, role }, JWT_SECRET, { expiresIn: "1h" });
-            // return res.json({ message: "Login successful", role, token });
+            // Generate JWT token
+            const token = jwt.sign({ email: user.Email, role }, JWT_SECRET, {
+                expiresIn: "1h", // token validity
+            });
 
-            res.json({ message: "Login successful", role });
+            // Return the token so the client can store it (e.g., localStorage)
+            res.json({ message: "Login successful", role, token });
         });
     });
 });
