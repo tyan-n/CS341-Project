@@ -128,11 +128,10 @@ app.post("/api/programs", async (req, res) => {
         return res.status(400).json({ error: "Missing required fields" });
     }
 
-    const sql = "INSERT INTO Class (ClassName, ClassSpec, Description, Frequency, RoomNumber, StartDate, EndDate, StartTime, EndTime, CurrCapacity, MemPrice, NonMemPrice, AgeGroup, EmpID, ClassType) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    const sql = "INSERT INTO Class (ClassName, Description, Frequency, RoomNumber, StartDate, EndDate, StartTime, EndTime, CurrCapacity, MemPrice, NonMemPrice, AgeGroup, EmpID, ClassType) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     db.run(sql, [
         programData.name, 
-        programData.classSpec,
         programData.description, 
         programData.frequency,
         programData.location, 
@@ -157,6 +156,7 @@ app.post("/api/programs", async (req, res) => {
 
 app.get("/api/programs", (req, res) => {
     const sql = `SELECT 
+        ClassID AS programId,
         ClassName AS name, 
         Description AS description, 
         StartTime AS startTime, 
@@ -169,14 +169,44 @@ app.get("/api/programs", (req, res) => {
 
     db.all(sql, [], (err, rows) => {
         if (err) {
-            console.error("❌ Error fetching programs:", err);
+            console.error("Error fetching programs:", err);
             return res.status(500).json({ error: "Database fetch failed" });
         }
 
-        console.log("✅ Programs fetched from database:", rows); // Debugging output
+        console.log("Programs fetched from database:", rows); // Debugging output
 
         res.json(rows);
     });
+});
+
+app.get("/api/programs/:id", async (req, res) => {
+    const programId = req.params.id;
+    console.log("🔍 Fetching program with ID:", programId); // Debugging
+
+    try {
+        const program = await db.get(`SELECT 
+        ClassID AS programId,
+        ClassName AS name, 
+        Description AS description, 
+        StartTime AS startTime, 
+        EndTime AS endTime,
+        RoomNumber AS location, 
+        CurrCapacity AS capacity, 
+        MemPrice AS priceMember, 
+        NonMemPrice AS priceNonMember
+        FROM Class WHERE ClassID = ?`, [programId]);
+
+        if (!program) {
+            console.log("❌ Program not found in database");
+            return res.status(404).json({ error: "Program not found" });
+        }
+
+        console.log("✅ Sending program:", program);
+        res.json(program);
+    } catch (error) {
+        console.error("❌ Error fetching program:", error);
+        res.status(500).json({ error: "Server error" });
+    }
 });
 
 app.post("/api/register", authenticateToken, async (req, res) => {
