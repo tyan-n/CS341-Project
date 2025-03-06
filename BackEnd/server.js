@@ -179,6 +179,7 @@ app.get("/api/programs", (req, res) => {
     });
 });
 
+//doesnt work
 app.get("/api/programs/:id", async (req, res) => {
     const programId = req.params.id;
     console.log("🔍 Fetching program with ID:", programId); // Debugging
@@ -229,12 +230,12 @@ app.post("/api/register", authenticateToken, async (req, res) => {
         // Register based on user type
         if (member) {
             await db.run(
-                "INSERT INTO Registrations (MemID, ClassID) VALUES (?, ?)",
+                "INSERT INTO Register (MemID, ClassID) VALUES (?, ?)",
                 [member.memberId, programId]
             );
         } else if (nonMember) {
             await db.run(
-                "INSERT INTO Registrations (NonMemID, ClassID) VALUES (?, ?)",
+                "INSERT INTO Register (NonMemID, ClassID) VALUES (?, ?)",
                 [nonMember.nonMemberId, programId]
             );
         }

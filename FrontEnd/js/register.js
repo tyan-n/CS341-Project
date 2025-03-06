@@ -1,10 +1,12 @@
-document.addEventListener("DOMContentLoaded", async function() {
+document.addEventListener("DOMContentLoaded", async function () {
     const urlParams = new URLSearchParams(window.location.search);
-    const programId = urlParams.get("programId");
+    const programId = urlParams.get("programId"); // Get program ID from URL
+
     const programDetails = document.getElementById("program-details");
     const registerButton = document.getElementById("confirm-register");
     const registrationMessage = document.getElementById("registration-message");
 
+    //  Fetch and display class details
     try {
         const response = await fetch(`http://localhost:5000/api/programs/${programId}`);
         const program = await response.json();
@@ -23,41 +25,41 @@ document.addEventListener("DOMContentLoaded", async function() {
             registerButton.style.display = "none";
         }
     } catch (error) {
-        console.error("Error fetching program details:", error);
-        programDetails.innerHTML = "<p>Error loading program details.</p>";
+        console.error("❌ Error fetching program details:", error);
+        programDetails.innerHTML = "<p>❌ Error loading program details.</p>";
     }
 
-    // Register User for Program
-    registerButton.addEventListener("click", async function() {
+    //  Register User for Program
+    registerButton.addEventListener("click", async function () {
         const token = localStorage.getItem("token");
-    
+
         if (!token) {
             alert("Please log in before registering.");
             window.location.href = `login.html?redirect=register.html?programId=${programId}`;
             return;
         }
-    
+
         try {
             const response = await fetch("http://localhost:5000/api/register", {
                 method: "POST",
-                headers: { 
+                headers: {
                     "Content-Type": "application/json",
                     "Authorization": `Bearer ${token}`
                 },
                 body: JSON.stringify({ programId })
             });
-    
+
             const data = await response.json();
-    
+
             if (response.ok) {
-                registrationMessage.innerText = "Registration successful!";
+                registrationMessage.innerText = "✅ Registration successful!";
                 registerButton.disabled = true;
             } else {
-                registrationMessage.innerText = data.error;
+                registrationMessage.innerText = `❌ ${data.error}`;
             }
         } catch (error) {
-            console.error("Registration failed:", error);
-            registrationMessage.innerText = "Error registering for program.";
+            console.error("❌ Registration failed:", error);
+            registrationMessage.innerText = "❌ Error registering for program.";
         }
     });
 });
