@@ -60,7 +60,6 @@ CREATE TABLE IF NOT EXISTS Room (
 CREATE TABLE IF NOT EXISTS Class (
     ClassID       INTEGER PRIMARY KEY AUTOINCREMENT,
     EmpID         INTEGER NOT NULL,
-    ClassSpec     TEXT NOT NULL CHECK (ClassSpec IN ('Basic', 'Premium')),
     ClassName     TEXT NOT NULL,
     RoomNumber    INTEGER NOT NULL,
     StartDate     DATE NOT NULL,
@@ -118,7 +117,7 @@ BEGIN
 	UPDATE Class --fully booked if CurrCapacity = MaxCapacity from room table
     SET Status = 'Fully Booked'
     WHERE ClassID = NEW.ClassID
-    AND CurrentCapacity + 1 > (SELECT MaxCapacity FROM Room
+    AND CurrCapacity + 1 > (SELECT MaxCapacity FROM Room
                                 WHERE RoomNumber = (SELECT RoomNumber 
                                                      FROM HeldIn 
                                                      WHERE ClassID = NEW.ClassID));
@@ -126,7 +125,7 @@ BEGIN
     UPDATE Class --open spots if CurrCapacity less than MaxCapacity
     SET Status = 'Open Spots'
     WHERE ClassID = NEW.ClassID
-    AND CurrentCapacity + 1 <= (SELECT MaxCapacity FROM Room
+    AND CurrCapacity + 1 <= (SELECT MaxCapacity FROM Room
                                  WHERE RoomNumber = (SELECT RoomNumber 
                                                       FROM HeldIn 
                                                       WHERE ClassID = NEW.ClassID));
