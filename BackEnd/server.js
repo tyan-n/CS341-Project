@@ -156,7 +156,7 @@ app.post("/api/programs", async (req, res) => {
 
 app.get("/api/programs", (req, res) => {
     const sql = `SELECT 
-        ClassID AS programId,
+        ClassID AS id,
         ClassName AS name, 
         Description AS description, 
         StartTime AS startTime, 
@@ -186,7 +186,7 @@ app.get("/api/programs/:id", async (req, res) => {
 
     try {
         const program = await db.get(`SELECT 
-        ClassID AS programId,
+        ClassID AS id,
         ClassName AS name, 
         Description AS description, 
         StartTime AS startTime, 
