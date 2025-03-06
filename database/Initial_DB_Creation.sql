@@ -107,24 +107,6 @@ CREATE TABLE IF NOT EXISTS Teach ( --relationship between employee and class
     FOREIGN KEY (EmpID) REFERENCES Employee(EmpID)
 );
 
-CREATE TRIGGER SetClassPrices
-AFTER INSERT ON Class
-FOR EACH ROW
-BEGIN
-    UPDATE Class
-    SET MemPrice = CASE
-        WHEN NEW.ClassSpec = 'Basic' THEN 0
-        WHEN NEW.ClassSpec = 'Premium' THEN 20
-        ELSE MemPrice
-    END,
-    NonMemPrice = CASE
-        WHEN NEW.ClassSpec = 'Basic' THEN 20
-        WHEN NEW.ClassSpec = 'Premium' THEN 40
-        ELSE NonMemPrice
-    END
-    WHERE ClassID = NEW.ClassID;
-END;
-
 CREATE TRIGGER update_capacity_after_reg
 AFTER INSERT ON Register
 FOR EACH ROW
