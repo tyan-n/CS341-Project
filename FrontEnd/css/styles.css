@@ -314,3 +314,70 @@ button {
 .ymca-navbar .nav-links a:hover {
     text-decoration: underline;
 }
+
+/* ======== Weekly Calendar View ======== */
+.calendar-grid {
+    display: grid;
+    grid-template-columns: 60px repeat(7, 1fr);
+    align-items: start;
+    gap: 1px;
+  }
+  
+  .time-column {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.75rem;
+    color: #555;
+    padding: 10px 4px;
+  }
+  
+  .time-column div {
+    height: 60px;
+    border-bottom: 1px solid #eee;
+    text-align: right;
+    padding-right: 4px;
+  }
+  
+  .day-column {
+    border-left: 1px solid #ccc;
+    position: relative;
+    padding-top: 30px;
+    min-height: 900px;
+  }
+  
+  .day-column h3 {
+    position: absolute;
+    top: 0;
+    width: 100%;
+    text-align: center;
+    font-size: 0.9rem;
+    background: #f9f9f9;
+    margin: 0;
+    padding: 6px 0;
+    border-bottom: 1px solid #ccc;
+  }
+  
+  .class-entry {
+    position: absolute;
+    left: 0;
+    right: 0;
+    margin: 0 5px;
+    background: #ffffff;
+    border-left: 4px solid #004F9F;
+    padding: 4px 6px;
+    font-size: 0.8rem;
+    border-radius: 5px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  
+  .class-entry button {
+    margin-top: 4px;
+    padding: 4px 8px;
+    font-size: 0.7rem;
+    background: #e74c3c;
+    border: none;
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
