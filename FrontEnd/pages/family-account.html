@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>YMCA Family Account</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+  <script src="../js/navbar.js"></script>
+
+  <main class="family-account-container">
+    <h2><i class="fas fa-users"></i> Family Account</h2>
+    <div id="family-message"></div>
+
+    <div id="create-family-form" style="display: none;">
+      <p>You are not part of a family account.</p>
+      <button id="create-family-btn" class="success-button">Create Family Account</button>
+    </div>
+
+    <div id="family-dashboard" style="display: none;">
+      <div id="family-members">
+        <h3>👨‍👩‍👧 Family Members</h3>
+        <ul id="member-list"></ul>
+      </div>
+
+      <div id="add-member-section" style="display: none;">
+        <h3>➕ Add Family Member</h3>
+        <form id="add-member-form">
+          <input type="text" id="new-member-username" placeholder="Username to add" required>
+          <button type="submit" class="success-button">Add Member</button>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <script src="../js/family-account.js"></script>
+</body>
+</html>
