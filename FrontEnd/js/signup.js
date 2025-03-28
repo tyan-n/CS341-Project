@@ -4,12 +4,13 @@ document.getElementById("signup-form").addEventListener("submit", async function
     const username = document.getElementById("signup-username").value;
     const password = document.getElementById("signup-password").value;
     const membershipType = document.getElementById("membership-type").value;
+    const birthday = document.getElementById("birthday").value;
 
     try {
         const response = await fetch("http://localhost:5000/api/signup", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username, password, membershipType })
+            body: JSON.stringify({ username, password, membershipType, birthday })
         });
 
         const data = await response.json();
