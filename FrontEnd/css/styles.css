@@ -273,3 +273,44 @@ button {
         grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     }
 }
+
+/* YMCA Navbar Styling */
+.ymca-navbar {
+    background-color: #004F9F;
+    color: white;
+    padding: 12px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'Arial', sans-serif;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.ymca-navbar .nav-content {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    align-items: center;
+}
+
+.ymca-navbar .logo {
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.ymca-navbar .nav-links a,
+.ymca-navbar .nav-links button {
+    color: white;
+    text-decoration: none;
+    margin-left: 20px;
+    font-weight: bold;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.ymca-navbar .nav-links button:hover,
+.ymca-navbar .nav-links a:hover {
+    text-decoration: underline;
+}
