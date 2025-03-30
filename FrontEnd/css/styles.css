@@ -105,25 +105,6 @@ main {
     margin-bottom: 20px;
 }
 
-/* YMCA Button */
-.ymca-button {
-    display: inline-block;
-    background-color: #004F9F;
-    color: white;
-    padding: 12px 20px;
-    text-decoration: none;
-    border-radius: 8px;
-    font-size: 18px;
-    font-weight: bold;
-    transition: background 0.3s ease, transform 0.2s ease;
-    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.ymca-button:hover {
-    background-color: #003B73;
-    transform: scale(1.05);
-}
-
 /* General Containers */
 .signup-container, 
 .login-container, 
@@ -208,30 +189,22 @@ textarea {
     resize: vertical;
 }
 
-/* Buttons */
-button {
-    width: 100%;
-    max-width: 300px;
-    padding: 15px;
-    font-size: 17px;
-    font-weight: bold;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.3s ease-in-out;
-}
-
-/* Primary Buttons - YMCA Blue */
-.ymca-button {
+  
+  /* 🔷 Primary Buttons - YMCA Blue */
+  button.ymca-button, a.ymca-button {
     background-color: #004F9F;
     color: white;
-    transition: 0.3s;
-}
-
-.ymca-button:hover {
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+  }
+  
+  button.ymca-button:hover, a.ymca-button:hover {
     background-color: #003B73;
     transform: scale(1.07);
-}
+  }
+  
 
 /* Browse Page - Program Listings */
 .browse-container {
@@ -414,3 +387,121 @@ button {
     font-size: 0.85rem;
   }
   
+  .program-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+  
+  .program-card {
+    background: #f0f4f9;
+    border: 1px solid #ccc;
+    padding: 16px;
+    border-radius: 10px;
+  }
+
+  #register-btn {
+    all: unset;
+    display: inline-block;
+  }
+  
+  #register-btn.ymca-button {
+    background-color: #004F9F;
+    color: white;
+    padding: 12px 20px;
+    font-size: 16px;
+    font-weight: bold;
+    border: none;
+    border-radius: 8px;
+    text-decoration: none;
+    cursor: pointer;
+    text-align: center;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+  
+  #register-btn.ymca-button:hover {
+    background-color: #003B73;
+    transform: scale(1.05);
+  }
+
+  .family-account-container {
+    max-width: 600px;
+    margin: 40px auto;
+    padding: 20px;
+    text-align: center;
+  }
+  
+  .member-list {
+    list-style: none;
+    padding: 0;
+    margin: 20px auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .member-list li {
+    background: #f5faff;
+    border: 2px solid #004F9F;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-weight: bold;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 400px;
+    margin: 0 auto;
+  }
+  
+  .member-list li button {
+    background-color: #e74c3c;
+    border: none;
+    color: white;
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .member-list li button:hover {
+    background-color: #c0392b;
+  }  
+  
+
+/* ========== YMCA BUTTON BASE STYLES ========== */
+.ymca-button,
+button.ymca-button,
+a.ymca-button {
+  display: inline-block;
+  background-color: #004F9F;
+  color: white;
+  padding: 12px 20px;
+  font-size: 16px;
+  font-weight: bold;
+  border: none;
+  border-radius: 8px;
+  text-decoration: none;
+  cursor: pointer;
+  text-align: center;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* ========== Hover Effect ========== */
+.ymca-button:hover,
+button.ymca-button:hover,
+a.ymca-button:hover {
+  background-color: #003B73;
+  transform: scale(1.05);
+}
+
+/* ========== Danger / Delete Button Variant ========== */
+.danger-button {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.danger-button:hover {
+  background-color: #c0392b;
+  transform: scale(1.05);
+}

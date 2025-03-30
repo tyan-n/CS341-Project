@@ -25,12 +25,12 @@ document.addEventListener("DOMContentLoaded", () => {
           msg.textContent = "🎉 Family account created!";
           setTimeout(() => {
             window.location.href = "family-account.html";
-          }, 1500);
+          }, 1000);
         } else {
           msg.textContent = data.error || "Failed to create family account.";
         }
       } catch (err) {
-        console.error("Create error:", err);
+        console.error("Error creating family:", err);
         msg.textContent = "Server error. Please try again.";
       }
     });

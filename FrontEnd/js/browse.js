@@ -14,7 +14,7 @@ document.addEventListener("DOMContentLoaded", async function() {
                     <p><strong>Location:</strong> ${program.location}</p>
                     <p><strong>Price:</strong> $${program.priceMember} (Member) / $${program.priceNonMember} (Non-Member)</p>
                     <p><strong>Capacity:</strong> ${program.capacity}</p>
-                    <button class="register-btn" data-id="${program.id}">Register</button>
+                    <button class="register-btn ymca-button" data-id="${program.id}">Register</button>
                 </div>
             `).join("");
         } else {
