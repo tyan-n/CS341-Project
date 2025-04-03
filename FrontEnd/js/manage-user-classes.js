@@ -31,8 +31,55 @@ document.addEventListener("DOMContentLoaded", () => {
       currentUser = usernameInput.value.trim();
       if (!currentUser) return;
   
-      userHeader.style.display = "block";
-      userHeader.textContent = `Schedule for: ${currentUser}`;
+      document.getElementById("user-header-container").style.display = "block";
+      userHeader.textContent = `Schedule for: ${currentUser}`;      
+
+      // 🔍 Fetch user profile to get current status
+      const profileRes = await fetch(`http://localhost:5000/api/users/${currentUser}/profile`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (profileRes.ok) {
+        const profileData = await profileRes.json();
+
+        // Create toggle button
+        const toggleBtn = document.createElement("button");
+        toggleBtn.id = "toggle-user-status";
+        toggleBtn.className = profileData.status === "inactive" ? "success-button" : "danger-button";
+        toggleBtn.innerText = profileData.status === "inactive" ? "Activate User" : "Mark Inactive";
+
+        // Add logic to toggle account status
+        toggleBtn.addEventListener("click", async () => {
+          const newStatus = profileData.status === "inactive" ? "active" : "inactive";
+          try {
+            const res = await fetch(`http://localhost:5000/api/users/${currentUser}/status`, {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`
+              },
+              body: JSON.stringify({ status: newStatus })
+            });
+
+            if (res.ok) {
+              alert(`User marked as ${newStatus}`);
+              profileData.status = newStatus;
+              toggleBtn.innerText = newStatus === "inactive" ? "Activate User" : "Mark Inactive";
+              toggleBtn.className = newStatus === "inactive" ? "success-button" : "danger-button";
+            } else {
+              alert(" Failed to update user status.");
+            }
+          } catch (err) {
+            console.error("Status toggle error:", err);
+            alert("Error toggling status.");
+          }
+        });
+
+        const statusControls = document.getElementById("user-status-controls");
+        statusControls.innerHTML = ""; // clear any existing
+        statusControls.appendChild(toggleBtn);        
+      }
+
       calendarMsg.textContent = "";
       clearSchedule();
   
