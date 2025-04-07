@@ -31,16 +31,13 @@ const JWT_SECRET = "your_secret_key";
 function authenticateToken(req, res, next) {
     const authHeader = req.headers["authorization"];
     const token = authHeader && authHeader.split(" ")[1]; // Extract token from "Bearer <token>"
-
     if (!token) {
         return res.status(401).json({ error: "Access denied. No token provided." });
     }
-
     jwt.verify(token, JWT_SECRET, (err, user) => {
         if (err) {
             return res.status(403).json({ error: "Invalid or expired token." });
         }
-
         req.user = user; // Store user data in request
         next();
     });
@@ -59,7 +56,6 @@ app.get("/", (req, res) => {
 ---------------------------------------- */
 app.post("/api/login", (req, res) => {
     const { username, password } = req.body;
-
     // SQL query to search both the Member and NonMember tables for the given email
     const sql = `
         SELECT Email, Password 
@@ -70,7 +66,6 @@ app.post("/api/login", (req, res) => {
         FROM NonMember 
         WHERE Email = ?
     `;
-
     db.get(sql, [username, username], (err, user) => {
         if (err) {
             return res.status(500).json({ error: "Database error" });
@@ -78,7 +73,6 @@ app.post("/api/login", (req, res) => {
         if (!user) {
             return res.status(401).json({ error: "Invalid email" });
         }
-
         // Compare the entered password with the hashed password in the database
         bcrypt.compare(password, user.Password, (err, isMatch) => {
             if (err) {
@@ -87,17 +81,10 @@ app.post("/api/login", (req, res) => {
             if (!isMatch) {
                 return res.status(401).json({ error: "Invalid password" });
             }
-
-            // If password matches, determine the role
-            // (Assuming staff has a YMCA org email; otherwise treat as "user")
+            // Determine the role (staff if email ends with "@ymca.org", otherwise "user")
             const role = user.Email.endsWith("@ymca.org") ? "staff" : "user";
-
             // Generate JWT token
-            const token = jwt.sign({ email: user.Email, role }, JWT_SECRET, {
-                expiresIn: "1h", // token validity
-            });
-
-            // Return the token so the client can store it (e.g., localStorage)
+            const token = jwt.sign({ email: user.Email, role }, JWT_SECRET, { expiresIn: "1h" });
             res.json({ message: "Login successful", role, token });
         });
     });
@@ -108,32 +95,22 @@ app.post("/api/login", (req, res) => {
 ---------------------------------------- */
 app.post("/api/signup", async (req, res) => {
     const { username, password, membershipType } = req.body;
-
     if (!username || !password || !membershipType) {
         return res.status(400).json({ error: "All fields are required" });
     }
-
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
-
-        let sql;
-        let params;
-
+        let sql, params;
         if (membershipType === "member") {
-            // Decide the account type for a member (Employee or Single)
             const acctType = username.endsWith("@ymca.org") ? "Employee" : "Single";
-
             sql = "INSERT INTO Member (Email, Password, AcctType) VALUES (?, ?, ?)";
             params = [username, hashedPassword, acctType];
-
         } else if (membershipType === "non-member") {
             sql = "INSERT INTO NonMember (Email, Password) VALUES (?, ?)";
             params = [username, hashedPassword];
-
         } else {
             return res.status(400).json({ error: "Invalid membership type" });
         }
-
         db.run(sql, params, function (err) {
             if (err) {
                 console.error("Error inserting user:", err);
@@ -141,7 +118,6 @@ app.post("/api/signup", async (req, res) => {
             }
             res.json({ message: `${membershipType} registered successfully` });
         });
-
     } catch (error) {
         console.error("Error in signup:", error);
         res.status(500).json({ error: "Server error" });
@@ -149,12 +125,10 @@ app.post("/api/signup", async (req, res) => {
 });
 
 /* ----------------------------------------
-   3) Add Class to Database
+   3) Add Class to Database (with conflict check for staff)
 ---------------------------------------- */
 app.post("/api/programs", (req, res) => {
     const programData = req.body;
-
-    // Validate the programData object
     if (
         !programData.name ||
         !programData.description ||
@@ -167,52 +141,73 @@ app.post("/api/programs", (req, res) => {
     ) {
         return res.status(400).json({ error: "Missing required fields" });
     }
-
-    const sql = `
-        INSERT INTO Class (
-            ClassName, 
-            Description, 
-            Frequency, 
-            RoomNumber, 
-            StartDate, 
-            EndDate, 
-            StartTime, 
-            EndTime, 
-            CurrCapacity, 
-            MemPrice, 
-            NonMemPrice, 
-            AgeGroup, 
-            EmpID, 
-            ClassType
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `;
-
-    db.run(
-        sql,
-        [
-            programData.name,
-            programData.description,
-            programData.frequency,
-            programData.location,
-            programData.startDate,
-            programData.endDate,
-            programData.startTime,
-            programData.endTime,
-            programData.capacity,
-            programData.priceMember,
-            programData.priceNonMember,
-            programData.ageGroup,
-            1, // Hard-coded EmpID for now, or pass from front-end
-            programData.classType
-        ],
-        function (err) {
-            if (err) {
-                console.error("Error inserting into database:", err);
-                return res.status(500).json({ error: "Error adding class to database" });
-            }
-            res.json({ message: "Class added successfully" });
+    function isClassTimeConflict(newClass, existingClass) {
+        const newEndDate = newClass.endDate || newClass.startDate;
+        const existEndDate = existingClass.EndDate || existingClass.StartDate;
+        const newStart = new Date(`${newClass.startDate}T${newClass.startTime}`);
+        const newEnd = new Date(`${newEndDate}T${newClass.endTime}`);
+        const existStart = new Date(`${existingClass.StartDate}T${existingClass.StartTime}`);
+        const existEnd = new Date(`${existEndDate}T${existingClass.EndTime}`);
+        return newStart < existEnd && existStart < newEnd;
+    }
+    const conflictQuery = "SELECT * FROM Class WHERE RoomNumber = ?";
+    db.all(conflictQuery, [programData.location], (err, existingClasses) => {
+        if (err) {
+            console.error("Error checking for class conflicts:", err);
+            return res.status(500).json({ error: "Database error during conflict check" });
         }
-    );
+        for (const existing of existingClasses) {
+            if (isClassTimeConflict(programData, existing)) {
+                return res.status(400).json({
+                    error: "Scheduling conflict: Another class is already scheduled in this room at the same time."
+                });
+            }
+        }
+        const sql = `
+            INSERT INTO Class (
+                ClassName, 
+                Description, 
+                Frequency, 
+                RoomNumber, 
+                StartDate, 
+                EndDate, 
+                StartTime, 
+                EndTime, 
+                CurrCapacity, 
+                MemPrice, 
+                NonMemPrice, 
+                AgeGroup, 
+                EmpID, 
+                ClassType
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `;
+        db.run(
+            sql,
+            [
+                programData.name,
+                programData.description,
+                programData.frequency,
+                programData.location,
+                programData.startDate,
+                programData.endDate,
+                programData.startTime,
+                programData.endTime,
+                programData.capacity,
+                programData.priceMember,
+                programData.priceNonMember,
+                programData.ageGroup,
+                1, // Hard-coded EmpID for now, or pass from front-end
+                programData.classType
+            ],
+            function (err) {
+                if (err) {
+                    console.error("Error inserting into database:", err);
+                    return res.status(500).json({ error: "Error adding class to database" });
+                }
+                res.json({ message: "Class added successfully" });
+            }
+        );
+    });
 });
 
 /* ----------------------------------------
@@ -232,13 +227,12 @@ app.get("/api/programs", (req, res) => {
             NonMemPrice AS priceNonMember
         FROM Class
     `;
-
     db.all(sql, [], (err, rows) => {
         if (err) {
             console.error("Error fetching programs:", err);
             return res.status(500).json({ error: "Database fetch failed" });
         }
-        console.log("Programs fetched from database:", rows); // Debugging output
+        console.log("Programs fetched from database:", rows);
         res.json(rows);
     });
 });
@@ -249,7 +243,6 @@ app.get("/api/programs", (req, res) => {
 app.get("/api/programs/:id", (req, res) => {
     const programId = req.params.id;
     console.log("🔍 Fetching program with ID:", programId);
-
     const sql = `
         SELECT 
             ClassID AS id,
@@ -264,7 +257,6 @@ app.get("/api/programs/:id", (req, res) => {
         FROM Class
         WHERE ClassID = ?
     `;
-
     db.get(sql, [programId], (err, program) => {
         if (err) {
             console.error("❌ Error fetching program:", err);
@@ -280,73 +272,231 @@ app.get("/api/programs/:id", (req, res) => {
 });
 
 /* ----------------------------------------
-   6) Register for a Program (Authenticated)
+   6) Get Registrations for the Authenticated User
 ---------------------------------------- */
+app.get("/api/registrations", authenticateToken, (req, res) => {
+    const userEmail = req.user.email;
+    // Check if the user is a member first
+    db.get("SELECT MemID FROM Member WHERE Email = ?", [userEmail], (err, member) => {
+        if (err) {
+            console.error("Error fetching member info:", err);
+            return res.status(500).json({ error: "Database error" });
+        }
+        if (member) {
+            const query = `
+                SELECT 
+                    c.StartDate AS startDate, 
+                    c.EndDate AS endDate, 
+                    c.StartTime AS startTime, 
+                    c.EndTime AS endTime, 
+                    c.RoomNumber AS location, 
+                    c.ClassName AS name, 
+                    c.ClassID AS id
+                FROM Register r
+                JOIN Class c ON r.ClassID = c.ClassID
+                WHERE r.MemID = ?
+            `;
+            db.all(query, [member.MemID], (err, rows) => {
+                if (err) {
+                    console.error("Error fetching registrations:", err);
+                    return res.status(500).json({ error: "Database error" });
+                }
+                res.json(rows);
+            });
+        } else {
+            // If not a member, check if the user is a non-member
+            db.get("SELECT NonMemID FROM NonMember WHERE Email = ?", [userEmail], (err, nonMember) => {
+                if (err) {
+                    console.error("Error fetching non-member info:", err);
+                    return res.status(500).json({ error: "Database error" });
+                }
+                if (!nonMember) {
+                    return res.status(404).json({ error: "User not found in Member or NonMember table." });
+                }
+                const query = `
+                    SELECT 
+                        c.StartDate AS startDate, 
+                        c.EndDate AS endDate, 
+                        c.StartTime AS startTime, 
+                        c.EndTime AS endTime, 
+                        c.RoomNumber AS location, 
+                        c.ClassName AS name, 
+                        c.ClassID AS id
+                    FROM Register r
+                    JOIN Class c ON r.ClassID = c.ClassID
+                    WHERE r.NonMemID = ?
+                `;
+                db.all(query, [nonMember.NonMemID], (err, rows) => {
+                    if (err) {
+                        console.error("Error fetching registrations:", err);
+                        return res.status(500).json({ error: "Database error" });
+                    }
+                    res.json(rows);
+                });
+            });
+        }
+    });
+});
+
+/* ----------------------------------------
+   7) Delete (Unregister) a Registration (Authenticated)
+---------------------------------------- */
+app.delete("/api/registrations/:id", authenticateToken, (req, res) => {
+    const registrationClassId = req.params.id;
+    const userEmail = req.user.email;
+
+    // Check if the user is a member first
+    db.get("SELECT MemID FROM Member WHERE Email = ?", [userEmail], (err, member) => {
+        if (err) {
+            console.error("Error fetching member info:", err);
+            return res.status(500).json({ error: "Database error" });
+        }
+        if (member) {
+            db.run(
+                "DELETE FROM Register WHERE ClassID = ? AND MemID = ?",
+                [registrationClassId, member.MemID],
+                function(err) {
+                    if (err) {
+                        console.error("Error deleting registration:", err);
+                        return res.status(500).json({ error: "Database error" });
+                    }
+                    if (this.changes === 0) {
+                        return res.status(404).json({ error: "Registration not found" });
+                    }
+                    res.json({ message: "Unregistered successfully!" });
+                }
+            );
+        } else {
+            // Check if the user is a non-member
+            db.get("SELECT NonMemID FROM NonMember WHERE Email = ?", [userEmail], (err, nonMember) => {
+                if (err) {
+                    console.error("Error fetching non-member info:", err);
+                    return res.status(500).json({ error: "Database error" });
+                }
+                if (!nonMember) {
+                    return res.status(404).json({ error: "User not found" });
+                }
+                db.run(
+                    "DELETE FROM Register WHERE ClassID = ? AND NonMemID = ?",
+                    [registrationClassId, nonMember.NonMemID],
+                    function(err) {
+                        if (err) {
+                            console.error("Error deleting registration:", err);
+                            return res.status(500).json({ error: "Database error" });
+                        }
+                        if (this.changes === 0) {
+                            return res.status(404).json({ error: "Registration not found" });
+                        }
+                        res.json({ message: "Unregistered successfully!" });
+                    }
+                );
+            });
+        }
+    });
+});
+
+/* ----------------------------------------
+   8) Register for a Program (Authenticated)
+---------------------------------------- */
+// Helper function to check if two classes overlap in time
+function isTimeConflict(newClass, existingClass) {
+    const newEndDate = newClass.EndDate || newClass.StartDate;
+    const existEndDate = existingClass.EndDate || existingClass.StartDate;
+    const newStart = new Date(`${newClass.StartDate}T${newClass.StartTime}`);
+    const newEnd = new Date(`${newEndDate}T${newClass.EndTime}`);
+    const existStart = new Date(`${existingClass.StartDate}T${existingClass.StartTime}`);
+    const existEnd = new Date(`${existEndDate}T${existingClass.EndTime}`);
+    return newStart < existEnd && existStart < newEnd;
+}
+  
 app.post("/api/register", authenticateToken, (req, res) => {
     const { programId } = req.body;
-    const userEmail = req.user.email; // Extract user email from token
-
+    const userEmail = req.user.email;
+  
     // 1) Check if user is a Member
     db.get("SELECT MemID FROM Member WHERE Email = ?", [userEmail], (err, member) => {
         if (err) {
             console.error("Error searching Member table:", err);
             return res.status(500).json({ error: "Database error" });
         }
-
         // 2) Check if user is a NonMember
         db.get("SELECT NonMemID FROM NonMember WHERE Email = ?", [userEmail], (err, nonMember) => {
             if (err) {
                 console.error("Error searching NonMember table:", err);
                 return res.status(500).json({ error: "Database error" });
             }
-
             if (!member && !nonMember) {
-                return res.status(404).json({
-                    error: "User not found in Member or NonMember table."
+                return res.status(404).json({ error: "User not found in Member or NonMember table." });
+            }
+  
+            // 3) Fetch the schedule details for the new class
+            const newClassQuery = `
+                SELECT StartDate, EndDate, StartTime, EndTime, RoomNumber 
+                FROM Class 
+                WHERE ClassID = ?
+            `;
+            db.get(newClassQuery, [programId], (err, newClass) => {
+                if (err) {
+                    console.error("Error fetching new class details:", err);
+                    return res.status(500).json({ error: "Error fetching class details" });
+                }
+                if (!newClass) {
+                    return res.status(404).json({ error: "Class not found" });
+                }
+  
+                // Determine the user's ID and which column to check based on membership type
+                let userId, idField;
+                if (member) {
+                    userId = member.MemID;
+                    idField = "MemID";
+                } else {
+                    userId = nonMember.NonMemID;
+                    idField = "NonMemID";
+                }
+  
+                // 4) Query for all current registrations of the user, with class schedule info
+                const registrationsQuery = `
+                    SELECT c.StartDate, c.EndDate, c.StartTime, c.EndTime, c.RoomNumber 
+                    FROM Register r
+                    JOIN Class c ON r.ClassID = c.ClassID
+                    WHERE r.${idField} = ?
+                `;
+                db.all(registrationsQuery, [userId], (err, registrations) => {
+                    if (err) {
+                        console.error("Error fetching registrations:", err);
+                        return res.status(500).json({ error: "Error fetching registrations" });
+                    }
+  
+                    // 5) Check each registered class for a time conflict
+                    for (const reg of registrations) {
+                        if (isTimeConflict(newClass, reg)) {
+                            return res.status(400).json({
+                                error: "Scheduling conflict: You are already registered for a class at this time."
+                            });
+                        }
+                    }
+  
+                    // 6) If no conflicts, insert the registration
+                    const query = member
+                        ? "INSERT INTO Register (MemID, ClassID) VALUES (?, ?)"
+                        : "INSERT INTO Register (NonMemID, ClassID) VALUES (?, ?)";
+                    const params = member ? [member.MemID, programId] : [nonMember.NonMemID, programId];
+                    db.run(query, params, function (err) {
+                        if (err) {
+                            if (err.code === "SQLITE_CONSTRAINT") {
+                                return res.status(400).json({ error: "You are already registered for this program." });
+                            } else {
+                                console.error("Error registering user:", err);
+                                return res.status(500).json({ error: "Database error" });
+                            }
+                        }
+                        res.json({ message: "Registration successful!" });
+                    });
                 });
-            }
-
-            // 3) Insert into Register table
-            if (member) {
-                db.run(
-                    "INSERT INTO Register (MemID, ClassID) VALUES (?, ?)",
-                    [member.MemID, programId],
-                    function (err) {
-                        if (err) {
-                            if (err.code === "SQLITE_CONSTRAINT") {
-                                return res.status(400).json({
-                                    error: "You are already registered for this program."
-                                });
-                            } else {
-                                console.error("Error registering user:", err);
-                                return res.status(500).json({ error: "Database error" });
-                            }
-                        }
-                        res.json({ message: "Registration successful!" });
-                    }
-                );
-            } else {
-                db.run(
-                    "INSERT INTO Register (NonMemID, ClassID) VALUES (?, ?)",
-                    [nonMember.NonMemID, programId],
-                    function (err) {
-                        if (err) {
-                            if (err.code === "SQLITE_CONSTRAINT") {
-                                return res.status(400).json({
-                                    error: "You are already registered for this program."
-                                });
-                            } else {
-                                console.error("Error registering user:", err);
-                                return res.status(500).json({ error: "Database error" });
-                            }
-                        }
-                        res.json({ message: "Registration successful!" });
-                    }
-                );
-            }
+            });
         });
     });
 });
-
+  
 // Start server
 app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));

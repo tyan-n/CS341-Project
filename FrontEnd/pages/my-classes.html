@@ -6,6 +6,81 @@
   <title>My Registered Classes</title>
   <link rel="stylesheet" href="../css/styles.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    /* Calendar grid container */
+    .calendar-grid {
+      height: 1440px; /* 24 hours * 60 minutes = 1440px */
+      overflow-y: auto;
+      position: relative;
+      border: 1px solid #ddd;
+      background-color: #f9f9f9;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    /* Time column styling */
+    .time-column {
+      width: 60px;
+      float: left;
+      text-align: right;
+      padding-right: 5px;
+      box-sizing: border-box;
+      background-color: #fff;
+      border-right: 1px solid #ddd;
+    }
+    .time-column div {
+      height: 60px; /* Each hour block is 60px tall */
+      border-bottom: 1px solid #eee;
+      font-size: 12px;
+      line-height: 60px;
+      color: #555;
+    }
+    /* Day columns styling */
+    .day-column {
+      margin-left: 60px; /* leave space for the time column */
+      position: relative;
+      min-height: 1440px;
+      border-left: 1px solid #ddd;
+      background-color: #fff;
+      padding: 5px;
+      box-sizing: border-box;
+    }
+    .day-column h3 {
+      background-color: #0077cc;
+      color: #fff;
+      margin: 0;
+      padding: 8px;
+      border-radius: 4px;
+      text-align: center;
+      font-size: 16px;
+    }
+    /* Optional: Style for class entries (if added by JS) */
+    .class-entry {
+      position: absolute;
+      left: 5px;
+      right: 5px;
+      background-color: #e6f7ff;
+      border: 1px solid #91d5ff;
+      border-radius: 4px;
+      padding: 4px;
+      font-size: 12px;
+      color: #333;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+    .class-entry button {
+      margin-top: 4px;
+      background-color: #ff4d4f;
+      border: none;
+      color: #fff;
+      padding: 3px 6px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 10px;
+    }
+    .class-entry button:hover {
+      background-color: #d9363e;
+    }
+  </style>
 </head>
 <body>
   <script src="../js/navbar.js"></script>
@@ -13,22 +88,42 @@
   <main class="my-classes-container">
     <h2>📅 My Registered YMCA Classes</h2>
 
-  <!-- Time-based calendar grid -->
-  <div class="calendar-grid">
-    <div class="time-column">
-      <div>06:00</div><div>07:00</div><div>08:00</div><div>09:00</div>
-      <div>10:00</div><div>11:00</div><div>12:00</div><div>13:00</div>
-      <div>14:00</div><div>15:00</div><div>16:00</div><div>17:00</div>
-      <div>18:00</div><div>19:00</div><div>20:00</div>
+    <!-- Time-based calendar grid -->
+    <div class="calendar-grid">
+      <div class="time-column">
+        <div>00:00</div>
+        <div>01:00</div>
+        <div>02:00</div>
+        <div>03:00</div>
+        <div>04:00</div>
+        <div>05:00</div>
+        <div>06:00</div>
+        <div>07:00</div>
+        <div>08:00</div>
+        <div>09:00</div>
+        <div>10:00</div>
+        <div>11:00</div>
+        <div>12:00</div>
+        <div>13:00</div>
+        <div>14:00</div>
+        <div>15:00</div>
+        <div>16:00</div>
+        <div>17:00</div>
+        <div>18:00</div>
+        <div>19:00</div>
+        <div>20:00</div>
+        <div>21:00</div>
+        <div>22:00</div>
+        <div>23:00</div>
+      </div>
+      <div class="day-column" data-day="Monday"><h3>Monday</h3></div>
+      <div class="day-column" data-day="Tuesday"><h3>Tuesday</h3></div>
+      <div class="day-column" data-day="Wednesday"><h3>Wednesday</h3></div>
+      <div class="day-column" data-day="Thursday"><h3>Thursday</h3></div>
+      <div class="day-column" data-day="Friday"><h3>Friday</h3></div>
+      <div class="day-column" data-day="Saturday"><h3>Saturday</h3></div>
+      <div class="day-column" data-day="Sunday"><h3>Sunday</h3></div>
     </div>
-    <div class="day-column" data-day="Monday"><h3>Monday</h3></div>
-    <div class="day-column" data-day="Tuesday"><h3>Tuesday</h3></div>
-    <div class="day-column" data-day="Wednesday"><h3>Wednesday</h3></div>
-    <div class="day-column" data-day="Thursday"><h3>Thursday</h3></div>
-    <div class="day-column" data-day="Friday"><h3>Friday</h3></div>
-    <div class="day-column" data-day="Saturday"><h3>Saturday</h3></div>
-    <div class="day-column" data-day="Sunday"><h3>Sunday</h3></div>
-  </div>
 
     <p id="no-classes-message"></p>
   </main>
