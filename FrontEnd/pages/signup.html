@@ -6,6 +6,31 @@
   <title>Sign Up</title>
   <link rel="stylesheet" href="../css/styles.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    /* Styling for the fixed phone input container */
+    .phone-input-container {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid #ccc;
+      padding: 4px 8px;
+      border-radius: 4px;
+      background: #fff;
+      width: 200px;
+      justify-content: flex-start;
+      margin-top: 4px;
+    }
+    .phone-prefix {
+      margin-right: 4px;
+      font-weight: bold;
+      color: #555;
+    }
+    #phone {
+      border: none;
+      outline: none;
+      font-size: 1rem;
+      width: 120px;
+    }
+  </style>
 </head>
 <body>
   <script src="../js/navbar.js"></script>
@@ -15,19 +40,15 @@
     <p class="signup-description">Sign up to access exclusive YMCA programs and resources.</p>
 
     <form id="signup-form">
+      <!-- Combined Email/Username Input -->
       <div class="form-group">
-        <label for="signup-username"><i class="fas fa-user"></i> Username:</label>
-        <input type="text" id="signup-username" required>
+        <label for="signup-username"><i class="fas fa-user"></i> Email:</label>
+        <input type="email" id="signup-username" placeholder="you@example.com" required>
       </div>
 
       <div class="form-group">
         <label for="signup-password"><i class="fas fa-lock"></i> Password:</label>
         <input type="password" id="signup-password" required>
-      </div>
-
-      <div class="form-group">
-        <label for="email"><i class="fas fa-envelope"></i> Email:</label>
-        <input type="email" id="email" required>
       </div>
 
       <div class="form-group">
@@ -55,9 +76,10 @@
         <input type="text" id="street" required>
       </div>
 
+      <!-- House Number: Only digits allowed -->
       <div class="form-group">
         <label for="house-number"><i class="fas fa-home"></i> House Number:</label>
-        <input type="text" id="house-number" required>
+        <input type="text" id="house-number" pattern="\d+" title="House Number must contain only digits." required>
       </div>
 
       <div class="form-group">
@@ -70,14 +92,26 @@
         <input type="text" id="state" required>
       </div>
 
+      <!-- Zip Code: Only digits allowed (5 digits) -->
       <div class="form-group">
         <label for="zip-code"><i class="fas fa-mail-bulk"></i> Zip Code:</label>
-        <input type="text" id="zip-code" required>
+        <input type="text" id="zip-code" pattern="\d{5}" title="Zip Code must be 5 digits." required>
       </div>
 
+      <!-- Phone Number: Fixed format input mask -->
       <div class="form-group">
         <label for="phone"><i class="fas fa-phone"></i> Phone Number:</label>
-        <input type="tel" id="phone" required>
+        <div class="phone-input-container">
+          <span class="phone-prefix">+1</span>
+          <input 
+            type="tel" 
+            id="phone" 
+            placeholder="(123)-456-7890" 
+            maxlength="14" 
+            pattern="^\(\d{3}\)-\d{3}-\d{4}$" 
+            title="Phone number must be in the format (123)-456-7890." 
+            required>
+        </div>
       </div>
 
       <div class="form-group">
@@ -89,8 +123,12 @@
       </div>
 
       <div class="button-group">
-        <button id="signup-button" type="submit" class="success-button"><i class="fas fa-user-plus"></i> Create Account</button>
-        <button id="back-to-login" type="button" class="ymca-button" onclick="window.location.href='login.html'"><i class="fas fa-arrow-left"></i> Back to Login</button>
+        <button id="signup-button" type="submit" class="success-button">
+          <i class="fas fa-user-plus"></i> Create Account
+        </button>
+        <button id="back-to-login" type="button" class="ymca-button" onclick="window.location.href='login.html'">
+          <i class="fas fa-arrow-left"></i> Back to Login
+        </button>
       </div>
     </form>
 

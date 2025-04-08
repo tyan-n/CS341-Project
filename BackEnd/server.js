@@ -94,36 +94,111 @@ app.post("/api/login", (req, res) => {
    2) Register (Sign Up)
 ---------------------------------------- */
 app.post("/api/signup", async (req, res) => {
-    const { username, password, membershipType } = req.body;
+    console.log("Signup request body:", req.body);
+  
+    const {
+      username,     // used as email
+      password,
+      membershipType,
+      fname,
+      lname,
+      mname,
+      birthday,
+      street,
+      houseNumber,
+      city,
+      state,
+      zipCode,
+      phone,
+      fee
+    } = req.body;
+  
+    // Basic required fields check
     if (!username || !password || !membershipType) {
-        return res.status(400).json({ error: "All fields are required" });
+      return res.status(400).json({ error: "Username, password, and membership type are required." });
     }
+  
+    // Validate email using a flexible pattern (allows any valid email domain)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(username.trim())) {
+      return res.status(400).json({ error: "Please enter a valid email address." });
+    }
+  
+    // For members, check that all additional required details are provided
+    if (membershipType === "member") {
+      const requiredFields = [fname, lname, birthday, street, houseNumber, city, state, zipCode, phone];
+      if (requiredFields.some(field => field === undefined || field === null || (typeof field === "string" && field.trim() === ""))) {
+        return res.status(400).json({ error: "All member details are required." });
+      }
+      // Validate phone number to enforce the fixed US format: (123)-456-7890
+      const phoneRegex = /^\(\d{3}\)-\d{3}-\d{4}$/;
+      if (!phoneRegex.test(phone.trim())) {
+        return res.status(400).json({ error: "Phone number must be in the format (123)-456-7890." });
+      }
+    }
+  
     try {
-        const hashedPassword = await bcrypt.hash(password, 10);
-        let sql, params;
-        if (membershipType === "member") {
-            const acctType = username.endsWith("@ymca.org") ? "Employee" : "Single";
-            sql = "INSERT INTO Member (Email, Password, AcctType) VALUES (?, ?, ?)";
-            params = [username, hashedPassword, acctType];
-        } else if (membershipType === "non-member") {
-            sql = "INSERT INTO NonMember (Email, Password) VALUES (?, ?)";
-            params = [username, hashedPassword];
-        } else {
-            return res.status(400).json({ error: "Invalid membership type" });
+      const hashedPassword = await bcrypt.hash(password, 10);
+      let sql, params;
+  
+      if (membershipType === "member") {
+        const acctType = username.trim().endsWith("@ymca.org") ? "Employee" : "Single";
+        // Default fee to 0 if not provided
+        const feeValue = fee === undefined || (typeof fee === "string" && fee.trim() === "") ? 0 : fee;
+        
+        sql = `INSERT INTO Member (
+                  FName, 
+                  LName, 
+                  MName, 
+                  Birthday, 
+                  Street, 
+                  HouseNumber, 
+                  City, 
+                  State, 
+                  ZipCode, 
+                  PhoneNumber, 
+                  Email, 
+                  Password, 
+                  Fee, 
+                  AcctType
+               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+        params = [
+          fname.trim(),
+          lname.trim(),
+          mname ? mname.trim() : null,
+          birthday.trim(),
+          street.trim(),
+          houseNumber.trim(),
+          city.trim(),
+          state.trim(),
+          zipCode.trim(),
+          phone.trim(),
+          username.trim(),
+          hashedPassword,
+          feeValue,
+          acctType
+        ];
+      } else if (membershipType === "non-member") {
+        sql = "INSERT INTO NonMember (Email, Password) VALUES (?, ?)";
+        params = [username.trim(), hashedPassword];
+      } else {
+        return res.status(400).json({ error: "Invalid membership type" });
+      }
+  
+      db.run(sql, params, function(err) {
+        if (err) {
+          console.error("Error inserting user:", err);
+          return res.status(500).json({ error: "Error inserting user" });
         }
-        db.run(sql, params, function (err) {
-            if (err) {
-                console.error("Error inserting user:", err);
-                return res.status(500).json({ error: "Error inserting user" });
-            }
-            res.json({ message: `${membershipType} registered successfully` });
-        });
+        console.log("User successfully inserted, new ID:", this.lastID);
+        res.json({ message: `${membershipType} registered successfully`, id: this.lastID });
+      });
     } catch (error) {
-        console.error("Error in signup:", error);
-        res.status(500).json({ error: "Server error" });
+      console.error("Error in signup:", error);
+      res.status(500).json({ error: "Server error" });
     }
 });
-
+  
 /* ----------------------------------------
    3) Add Class to Database (with conflict check for staff)
 ---------------------------------------- */
@@ -141,6 +216,36 @@ app.post("/api/programs", (req, res) => {
     ) {
         return res.status(400).json({ error: "Missing required fields" });
     }
+
+    // --- Date & Time Validations ---
+    // Normalize today's date to midnight
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    // Normalize start date from input to midnight for comparison
+    const classStartDate = new Date(programData.startDate);
+    classStartDate.setHours(0, 0, 0, 0);
+
+    // Staff cannot set up a class before today
+    if (classStartDate < today) {
+        return res.status(400).json({ error: "Cannot set up a class before today's date." });
+    }
+
+    // Build full start and end DateTime objects
+    const startDateTime = new Date(`${programData.startDate}T${programData.startTime}`);
+    const endDateTime = new Date(`${programData.endDate}T${programData.endTime}`);
+    
+    // Validate that the end date/time is after the start date/time
+    if (endDateTime <= startDateTime) {
+        return res.status(400).json({ error: "End date and time must be after start date and time." });
+    }
+
+    // If class is scheduled for today, ensure start time is after current time
+    const now = new Date();
+    if (classStartDate.getTime() === today.getTime() && startDateTime < now) {
+        return res.status(400).json({ error: "For classes scheduled today, the start time must be after the current time." });
+    }
+    // --- End Date & Time Validations ---
+
     function isClassTimeConflict(newClass, existingClass) {
         const newEndDate = newClass.endDate || newClass.startDate;
         const existEndDate = existingClass.EndDate || existingClass.StartDate;
@@ -209,7 +314,7 @@ app.post("/api/programs", (req, res) => {
         );
     });
 });
-
+  
 /* ----------------------------------------
    4) Get All Programs
 ---------------------------------------- */
@@ -236,7 +341,7 @@ app.get("/api/programs", (req, res) => {
         res.json(rows);
     });
 });
-
+  
 /* ----------------------------------------
    5) Get Program by ID
 ---------------------------------------- */
@@ -270,7 +375,7 @@ app.get("/api/programs/:id", (req, res) => {
         res.json(program);
     });
 });
-
+  
 /* ----------------------------------------
    6) Get Registrations for the Authenticated User
 ---------------------------------------- */
@@ -337,14 +442,14 @@ app.get("/api/registrations", authenticateToken, (req, res) => {
         }
     });
 });
-
+  
 /* ----------------------------------------
    7) Delete (Unregister) a Registration (Authenticated)
 ---------------------------------------- */
 app.delete("/api/registrations/:id", authenticateToken, (req, res) => {
     const registrationClassId = req.params.id;
     const userEmail = req.user.email;
-
+  
     // Check if the user is a member first
     db.get("SELECT MemID FROM Member WHERE Email = ?", [userEmail], (err, member) => {
         if (err) {
@@ -394,7 +499,7 @@ app.delete("/api/registrations/:id", authenticateToken, (req, res) => {
         }
     });
 });
-
+  
 /* ----------------------------------------
    8) Register for a Program (Authenticated)
 ---------------------------------------- */
@@ -498,5 +603,37 @@ app.post("/api/register", authenticateToken, (req, res) => {
     });
 });
   
+/* ----------------------------------------
+   9) Delete a Class (Employees Only)
+---------------------------------------- */
+
+app.delete("/api/programs/:id", authenticateToken, (req, res) => {
+    const classId = req.params.id;
+    const userEmail = req.user.email;
+
+    // Check the Member table for the logged-in user's AcctType
+    db.get("SELECT AcctType FROM Member WHERE LOWER(Email) = LOWER(?)", [userEmail.trim()], (err, member) => {
+        if (err) {
+            console.error("Error fetching member info:", err);
+            return res.status(500).json({ error: "Database error" });
+        }
+        // If no member record found or AcctType is not "Employee", deny deletion.
+        if (!member || member.AcctType !== "Employee") {
+            return res.status(403).json({ error: "Access denied: Only employees can delete classes." });
+        }
+        const sql = "DELETE FROM Class WHERE ClassID = ?";
+        db.run(sql, [classId], function(err) {
+            if (err) {
+                console.error("Error deleting class:", err);
+                return res.status(500).json({ error: "Error deleting class" });
+            }
+            if (this.changes === 0) {
+                return res.status(404).json({ error: "Class not found" });
+            }
+            res.json({ message: "Class deleted successfully!" });
+        });
+    });
+});
+
 // Start server
 app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
