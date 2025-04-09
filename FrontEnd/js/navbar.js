@@ -52,24 +52,24 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   
     // Family Account Link Handler
-    if (isLoggedIn) {
-      const familyLink = document.getElementById("family-link");
-      if (familyLink) {
-        familyLink.addEventListener("click", async (e) => {
-          e.preventDefault();
-          try {
-            const res = await fetch("http://localhost:5000/api/account/family-status", {
-              headers: { Authorization: `Bearer ${token}` }
-            });
-            const data = await res.json();
-            const target = data.inFamily ? "family-dashboard.html" : "create-family.html";
-            window.location.href = pathPrefix + target;
-          } catch (err) {
-            console.error("Family status check failed:", err);
-            window.location.href = pathPrefix + "create-family.html";
-          }
-        });
-      }
+  if (isLoggedIn) {
+    const familyLink = document.getElementById("family-link");
+    if (familyLink) {
+      familyLink.addEventListener("click", async (e) => {
+        e.preventDefault();
+        try {
+          const res = await fetch("http://localhost:5000/api/account/family-status", {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const data = await res.json();
+          const target = data.inFamily ? "family-account.html" : "create-family.html";
+          window.location.href = pathPrefix + target;
+        } catch (err) {
+          console.error("Family status check failed:", err);
+          window.location.href = pathPrefix + "create-family.html";
+        }
+      });
     }
-  });
+  }
+});
   
