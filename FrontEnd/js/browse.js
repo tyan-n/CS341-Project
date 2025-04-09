@@ -1,24 +1,26 @@
-document.addEventListener("DOMContentLoaded", async function() {
+document.addEventListener("DOMContentLoaded", async function () {
     const programList = document.getElementById("program-list");
-    // Get user role from localStorage (set during login)
     const role = localStorage.getItem("role");
 
     try {
-        const response = await fetch("http://localhost:5000/api/programs"); // Fetch programs from backend
+        const response = await fetch("http://localhost:5000/api/programs");
         const programs = await response.json();
 
-        if (programs.length > 0) {
-            programList.innerHTML = programs.map(program => {
-                // Always include a Register button
+        // Filter out inactive classes
+        const activePrograms = programs.filter(p => p.status !== "Inactive");
+
+        if (activePrograms.length > 0) {
+            programList.innerHTML = activePrograms.map(program => {
                 let buttonsHTML = `
                     <button class="register-btn ymca-button" data-id="${program.id}">Register</button>
                 `;
-                // If the user is staff, add an additional Delete button
+
                 if (role === "staff") {
                     buttonsHTML += `
                         <button class="delete-btn ymca-button" data-id="${program.id}">Delete Class</button>
                     `;
                 }
+
                 return `
                     <div class="program-card">
                         <h3>${program.name}</h3>
@@ -40,42 +42,43 @@ document.addEventListener("DOMContentLoaded", async function() {
         programList.innerHTML = "<p>Error loading programs.</p>";
     }
 
-    // Event listener for Register buttons (all users)
-    document.querySelectorAll(".register-btn").forEach(button => {
-        button.addEventListener("click", function() {
-            const programId = this.getAttribute("data-id");
+    // Register button listener
+    document.addEventListener("click", function (e) {
+        if (e.target.classList.contains("register-btn")) {
+            const programId = e.target.getAttribute("data-id");
             window.location.href = `register.html?programId=${programId}`;
-        });
-    });
+        }
 
-    // Event listener for Delete buttons (only visible to staff)
-    document.querySelectorAll(".delete-btn").forEach(button => {
-        button.addEventListener("click", async function() {
-            const programId = this.getAttribute("data-id");
+        if (e.target.classList.contains("delete-btn")) {
+            const programId = e.target.getAttribute("data-id");
             const token = localStorage.getItem("token");
+
             if (!token) {
                 alert("Please log in to delete a class.");
                 return;
             }
-            console.log("Using token for deletion:", token);  // Debug log
 
             if (!confirm("Are you sure you want to delete this class?")) return;
-            try {
-                const response = await fetch(`http://localhost:5000/api/programs/${programId}`, {
-                    method: "DELETE",
-                    headers: { "Authorization": `Bearer ${token}` }
-                });
-                const data = await response.json();
-                if (response.ok) {
-                    alert("Class deleted successfully!");
-                    window.location.reload();
-                } else {
-                    alert(`Error: ${data.error}`);
+
+            fetch(`http://localhost:5000/api/programs/${programId}`, {
+                method: "DELETE",
+                headers: {
+                    "Authorization": `Bearer ${token}`
                 }
-            } catch (error) {
-                console.error("Error deleting class:", error);
-                alert("Error connecting to server.");
-            }
-        });
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.message) {
+                        alert("Class deleted successfully!");
+                        window.location.reload();
+                    } else {
+                        alert(`Error: ${data.error}`);
+                    }
+                })
+                .catch(err => {
+                    console.error("Error deleting class:", err);
+                    alert("Server error.");
+                });
+        }
     });
 });

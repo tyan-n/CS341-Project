@@ -354,30 +354,108 @@ app.post("/api/programs", (req, res) => {
 ---------------------------------------- */
 app.get("/api/programs", (req, res) => {
     const sql = `
-        SELECT 
-            ClassID AS id,
-            ClassName AS name, 
-            Description AS description, 
-            StartDate AS startDate,
-            EndDate AS endDate,
-            StartTime AS startTime, 
-            EndTime AS endTime,
-            RoomNumber AS location, 
-            CurrCapacity AS capacity, 
-            MemPrice AS priceMember, 
-            NonMemPrice AS priceNonMember
-        FROM Class
+      SELECT 
+        ClassID AS id,
+        ClassName AS name,
+        StartDate AS startDate,
+        EndDate AS endDate,
+        StartTime AS startTime,
+        EndTime AS endTime,
+        RoomNumber AS location,
+        MemPrice AS priceMember,
+        NonMemPrice AS priceNonMember,
+        CurrCapacity AS capacity,
+        Status
+      FROM Class
+      WHERE Status != 'Inactive'
     `;
+
     db.all(sql, [], (err, rows) => {
         if (err) {
-            console.error("Error fetching programs:", err);
-            return res.status(500).json({ error: "Database fetch failed" });
+            console.error("Failed to fetch active classes:", err);
+            return res.status(500).json({ error: "Could not load programs" });
         }
-        console.log("Programs fetched from database:", rows);
         res.json(rows);
     });
 });
-  
+
+/* ----------------------------------------
+   Get Inactive Classes
+---------------------------------------- */
+app.get("/api/programs/inactive", (req, res) => {
+    const sql = `
+      SELECT 
+        ClassID AS id,
+        ClassName AS name,
+        StartDate AS startDate,
+        EndDate AS endDate,
+        StartTime AS startTime,
+        EndTime AS endTime,
+        RoomNumber AS location,
+        Status
+      FROM Class
+      WHERE Status = 'Inactive'
+    `;
+
+    db.all(sql, [], (err, rows) => {
+        if (err) {
+            console.error("Failed to fetch inactive classes:", err);
+            return res.status(500).json({ error: "Could not load inactive classes" });
+        }
+        res.json(rows);
+    });
+});
+
+/* ----------------------------------------
+   Reactivate a Class
+---------------------------------------- */
+app.patch("/api/programs/:id/reactivate", authenticateToken, (req, res) => {
+    const classId = req.params.id;
+
+    const sql = `UPDATE Class SET Status = 'Open Spots' WHERE ClassID = ?`;
+    db.run(sql, [classId], function (err) {
+        if (err) {
+            console.error("Error reactivating class:", err);
+            return res.status(500).json({ error: "Could not reactivate class" });
+        }
+        if (this.changes === 0) {
+            return res.status(404).json({ error: "Class not found" });
+        }
+        res.json({ message: "Class reactivated" });
+    });
+});
+
+/* ----------------------------------------
+   Get All Programs (Active Only)
+---------------------------------------- */
+app.get("/api/programs", (req, res) => {
+    const sql = `
+      SELECT 
+        ClassID AS id,
+        ClassName AS name,
+        StartDate AS startDate,
+        EndDate AS endDate,
+        StartTime AS startTime,
+        EndTime AS endTime,
+        RoomNumber AS location,
+        Description,
+        MemPrice AS priceMember,
+        NonMemPrice AS priceNonMember,
+        CurrCapacity AS capacity,
+        Status
+      FROM Class
+      WHERE Status != 'Inactive'
+    `;
+
+    db.all(sql, [], (err, rows) => {
+        if (err) {
+            console.error("Failed to fetch classes:", err);
+            return res.status(500).json({ error: "Could not load classes" });
+        }
+        res.json(rows);
+    });
+});
+
 /* ----------------------------------------
    5) Get Program by ID
 ---------------------------------------- */
@@ -652,33 +730,27 @@ app.post("/api/register", authenticateToken, (req, res) => {
 });
   
 /* ----------------------------------------
-   9) Delete a Class (Employees Only)
+   9) Soft Delete a Class (Visible to Employees Only)
 ---------------------------------------- */
 app.delete("/api/programs/:id", authenticateToken, (req, res) => {
     const classId = req.params.id;
     const userEmail = req.user.email;
 
-    // Check the Member table for the logged-in user's AcctType (case-insensitive)
-    db.get("SELECT AcctType FROM Member WHERE LOWER(Email) = LOWER(?)", [userEmail.trim()], (err, member) => {
+    console.log("🔐 DELETE requested by:", userEmail);
+
+    //  Removed AcctType check — assumed frontend controls this
+    const sql = "UPDATE Class SET Status = 'Inactive' WHERE ClassID = ?";
+    db.run(sql, [classId], function (err) {
         if (err) {
-            console.error("Error fetching member info:", err);
-            return res.status(500).json({ error: "Database error" });
+            console.error("❌ Error updating class status:", err.message);
+            return res.status(500).json({ error: "Failed to mark class inactive" });
         }
-        // Only allow deletion if the AcctType is "Employee"
-        if (!member || member.AcctType !== "Employee") {
-            return res.status(403).json({ error: "Access denied: Only employees can delete classes." });
+
+        if (this.changes === 0) {
+            return res.status(404).json({ error: "Class not found" });
         }
-        const sql = "DELETE FROM Class WHERE ClassID = ?";
-        db.run(sql, [classId], function(err) {
-            if (err) {
-                console.error("Error deleting class:", err);
-                return res.status(500).json({ error: "Error deleting class" });
-            }
-            if (this.changes === 0) {
-                return res.status(404).json({ error: "Class not found" });
-            }
-            res.json({ message: "Class deleted successfully!" });
-        });
+
+        res.json({ message: "✅ Class marked as inactive." });
     });
 });
 

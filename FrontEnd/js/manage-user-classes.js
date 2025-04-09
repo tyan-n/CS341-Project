@@ -11,6 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const calendarMsg = document.getElementById("calendar-message");
   const assignList = document.getElementById("assignable-classes");
   const allProgramsContainer = document.getElementById("all-programs");
+  const inactiveContainer = document.getElementById("inactive-class-list");
   const calendarGrid = document.querySelector(".calendar-grid");
 
   const getDayName = dateStr => {
@@ -102,6 +103,7 @@ document.addEventListener("DOMContentLoaded", () => {
       renderSchedule();
       renderAssignableList();
       await renderFamilyInfo();
+      await loadInactiveClasses();
 
     } catch (err) {
       console.error("User fetch failed", err);
@@ -109,69 +111,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // 🔁 After all listeners, safely restore saved user
   const savedUser = localStorage.getItem("selectedUserEmail");
   if (savedUser) {
     usernameInput.value = savedUser;
     setTimeout(() => {
       form.dispatchEvent(new Event("submit"));
     }, 0);
-  }
-
-  async function renderFamilyInfo() {
-    const target = document.getElementById("family-info");
-    if (!target) return;
-    target.innerHTML = "";
-
-    try {
-      const res = await fetch(`http://localhost:5000/api/account/family-status/${currentUser}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (!res.ok) return;
-      const data = await res.json();
-
-      if (data.inFamily) {
-        const div = document.createElement("div");
-        div.className = "family-tools";
-        div.innerHTML = `
-          <p><strong>${currentUser}</strong> is part of <strong>${data.owner}'s Family</strong></p>
-          <button id="remove-user-family" class="danger-button">Remove from Family</button>
-          <button id="delete-user-family" class="danger-button">Delete Entire Family</button>
-        `;
-
-        div.querySelector("#remove-user-family").addEventListener("click", async () => {
-          const res = await fetch(`http://localhost:5000/api/family/remove/${currentUser}`, {
-            method: "DELETE",
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          if (res.ok) {
-            alert("User removed from family.");
-            div.remove();
-          } else {
-            alert("Failed to remove user from family.");
-          }
-        });
-
-        div.querySelector("#delete-user-family").addEventListener("click", async () => {
-          const confirmDelete = confirm("This will delete the entire family. Proceed?");
-          if (!confirmDelete) return;
-          const res = await fetch(`http://localhost:5000/api/family/delete/${data.id}`, {
-            method: "DELETE",
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          if (res.ok) {
-            alert("Family account deleted.");
-            div.remove();
-          } else {
-            alert("Failed to delete family.");
-          }
-        });
-
-        target.appendChild(div);
-      }
-    } catch (err) {
-      console.error("Family fetch error", err);
-    }
   }
 
   function clearSchedule() {
@@ -241,36 +186,11 @@ document.addEventListener("DOMContentLoaded", () => {
       `;
 
       div.querySelector(".assign-btn").addEventListener("click", async () => {
-        // Overlap check
-        const overlaps = userClasses.some(c => {
-          const sameDay = c.StartDate === cls.startDate;
-          if (!sameDay) return false;
-      
-          const toMinutes = t => {
-            const [h, m] = t.split(":").map(Number);
-            return h * 60 + m;
-          };
-      
-          const start1 = toMinutes(cls.startTime);
-          const end1 = toMinutes(cls.endTime);
-          const start2 = toMinutes(c.StartTime);
-          const end2 = toMinutes(c.EndTime);
-      
-          return start1 < end2 && start2 < end1;
-        });
-      
-        if (overlaps) {
-          alert("⛔ Class overlaps with an existing registration.");
-          return;
-        }
-      
-        // Proceed to assign
         try {
           const res = await fetch(`http://localhost:5000/api/users/${currentUser}/register/${cls.id}`, {
             method: "POST",
             headers: { Authorization: `Bearer ${token}` }
           });
-      
           if (res.ok) {
             const newClass = await res.json();
             userClasses.push(newClass);
@@ -282,10 +202,59 @@ document.addEventListener("DOMContentLoaded", () => {
         } catch (err) {
           console.error(err);
         }
-      });      
+      });
 
       assignList.appendChild(div);
     });
+  }
+
+  async function loadInactiveClasses() {
+    if (!inactiveContainer) return;
+
+    try {
+      const res = await fetch("http://localhost:5000/api/programs/inactive", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      const data = await res.json();
+      inactiveContainer.innerHTML = "";
+
+      if (data.length === 0) {
+        inactiveContainer.innerHTML = "<p>No inactive classes at the moment.</p>";
+        return;
+      }
+
+      data.forEach(cls => {
+        const div = document.createElement("div");
+        div.className = "program-card inactive";
+        div.innerHTML = `
+          <h4>${cls.name}</h4>
+          <p><strong>${cls.startDate}</strong> @ ${cls.startTime}–${cls.endTime}</p>
+          <p><em>${cls.location}</em></p>
+          <button class="success-button reactivate-btn" data-id="${cls.id}">Reactivate</button>
+        `;
+
+        div.querySelector(".reactivate-btn").addEventListener("click", async () => {
+          const res = await fetch(`http://localhost:5000/api/programs/${cls.id}/reactivate`, {
+            method: "PATCH",
+            headers: { Authorization: `Bearer ${token}` }
+          });
+
+          if (res.ok) {
+            alert("Class reactivated");
+            loadInactiveClasses();
+            form.dispatchEvent(new Event("submit"));
+          } else {
+            alert("Failed to reactivate");
+          }
+        });
+
+        inactiveContainer.appendChild(div);
+      });
+    } catch (err) {
+      console.error("Failed to fetch inactive", err);
+      inactiveContainer.innerHTML = "<p>Could not load inactive classes.</p>";
+    }
   }
 
   async function loadAllPrograms() {
@@ -309,7 +278,7 @@ document.addEventListener("DOMContentLoaded", () => {
           </button>
         `;
 
-        div.querySelector("button").addEventListener("click", async () => {
+        div.querySelector(".delete-global").addEventListener("click", async () => {
           const confirmDelete = confirm("Delete this class for ALL users?");
           if (!confirmDelete) return;
 
@@ -334,6 +303,62 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     } catch (err) {
       console.error("Failed to fetch all programs", err);
+    }
+  }
+
+  async function renderFamilyInfo() {
+    const target = document.getElementById("family-info");
+    if (!target) return;
+    target.innerHTML = "";
+
+    try {
+      const res = await fetch(`http://localhost:5000/api/account/family-status/${currentUser}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+
+      if (data.inFamily) {
+        const div = document.createElement("div");
+        div.className = "family-tools";
+        div.innerHTML = `
+          <p><strong>${currentUser}</strong> is part of <strong>${data.owner}'s Family</strong></p>
+          <button id="remove-user-family" class="danger-button">Remove from Family</button>
+          <button id="delete-user-family" class="danger-button">Delete Entire Family</button>
+        `;
+
+        div.querySelector("#remove-user-family").addEventListener("click", async () => {
+          const res = await fetch(`http://localhost:5000/api/family/remove/${currentUser}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (res.ok) {
+            alert("User removed from family.");
+            div.remove();
+          } else {
+            alert("Failed to remove user from family.");
+          }
+        });
+
+        div.querySelector("#delete-user-family").addEventListener("click", async () => {
+          const confirmDelete = confirm("This will delete the entire family. Proceed?");
+          if (!confirmDelete) return;
+          const res = await fetch(`http://localhost:5000/api/family/delete/${data.id}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (res.ok) {
+            alert("Family account deleted.");
+            div.remove();
+          } else {
+            alert("Failed to delete family.");
+          }
+        });
+
+        target.appendChild(div);
+      }
+    } catch (err) {
+      console.error("Family fetch error", err);
     }
   }
 

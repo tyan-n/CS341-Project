@@ -505,3 +505,20 @@ a.ymca-button:hover {
   background-color: #c0392b;
   transform: scale(1.05);
 }
+
+#inactive-class-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+  justify-items: center;
+}
+
+.program-card.inactive {
+  background: #f0f4f9;
+  border: 1px solid #ccc;
+  padding: 16px;
+  border-radius: 10px;
+  width: 100%;
+  box-sizing: border-box;
+}
