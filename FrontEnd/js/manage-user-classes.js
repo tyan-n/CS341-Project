@@ -186,11 +186,38 @@ document.addEventListener("DOMContentLoaded", () => {
       `;
 
       div.querySelector(".assign-btn").addEventListener("click", async () => {
+        // Parse new class details
+        const newDay = getDayName(cls.startDate);
+        const [newStartH, newStartM] = cls.startTime.split(":").map(Number);
+        const [newEndH, newEndM] = cls.endTime.split(":").map(Number);
+        const newStart = newStartH * 60 + newStartM;
+        const newEnd = newEndH * 60 + newEndM;
+      
+        // Check for time conflicts
+        const conflict = userClasses.some(uc => {
+          const ucDay = getDayName(uc.StartDate);
+          if (ucDay !== newDay) return false;
+      
+          const [ucStartH, ucStartM] = uc.StartTime.split(":").map(Number);
+          const [ucEndH, ucEndM] = uc.EndTime.split(":").map(Number);
+          const ucStart = ucStartH * 60 + ucStartM;
+          const ucEnd = ucEndH * 60 + ucEndM;
+      
+          return Math.max(ucStart, newStart) < Math.min(ucEnd, newEnd);
+        });
+      
+        if (conflict) {
+          alert("⚠️ This class conflicts with an existing class on the user's schedule.");
+          return;
+        }
+      
+        // No conflict, proceed with assignment
         try {
           const res = await fetch(`http://localhost:5000/api/users/${currentUser}/register/${cls.id}`, {
             method: "POST",
             headers: { Authorization: `Bearer ${token}` }
           });
+      
           if (res.ok) {
             const newClass = await res.json();
             userClasses.push(newClass);
@@ -203,7 +230,7 @@ document.addEventListener("DOMContentLoaded", () => {
           console.error(err);
         }
       });
-
+      
       assignList.appendChild(div);
     });
   }
