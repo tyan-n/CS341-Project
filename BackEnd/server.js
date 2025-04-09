@@ -735,24 +735,34 @@ app.post("/api/register", authenticateToken, (req, res) => {
 app.delete("/api/programs/:id", authenticateToken, (req, res) => {
     const classId = req.params.id;
     const userEmail = req.user.email;
-
+  
     console.log("🔐 DELETE requested by:", userEmail);
-
-    //  Removed AcctType check — assumed frontend controls this
-    const sql = "UPDATE Class SET Status = 'Inactive' WHERE ClassID = ?";
-    db.run(sql, [classId], function (err) {
+  
+    const deactivateClass = "UPDATE Class SET Status = 'Inactive' WHERE ClassID = ?";
+    const removeRegistrations = "DELETE FROM Register WHERE ClassID = ?";
+  
+    db.run(deactivateClass, [classId], function (err) {
+      if (err) {
+        console.error("❌ Error updating class status:", err.message);
+        return res.status(500).json({ error: "Failed to mark class inactive" });
+      }
+  
+      if (this.changes === 0) {
+        return res.status(404).json({ error: "Class not found" });
+      }
+  
+      // 🧼 Remove all user registrations for this class
+      db.run(removeRegistrations, [classId], function (err) {
         if (err) {
-            console.error("❌ Error updating class status:", err.message);
-            return res.status(500).json({ error: "Failed to mark class inactive" });
+          console.error("❌ Failed to remove registrations:", err.message);
+          return res.status(500).json({ error: "Class status updated but failed to unregister users." });
         }
-
-        if (this.changes === 0) {
-            return res.status(404).json({ error: "Class not found" });
-        }
-
-        res.json({ message: "✅ Class marked as inactive." });
+  
+        res.json({ message: "✅ Class marked as inactive and users unregistered." });
+      });
     });
-});
+  });
+  
 
 /* ----------------------------------------
    FAMILY ACCOUNT ROUTES
