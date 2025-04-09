@@ -51,55 +51,33 @@
         <input type="password" id="signup-password" required>
       </div>
 
+      <!-- Membership Type Dropdown -->
       <div class="form-group">
+        <label for="membership-type"><i class="fas fa-id-card"></i> Membership Type:</label>
+        <select id="membership-type" required>
+          <option value="member">Member</option>
+          <option value="non-member">Non-Member</option>
+        </select>
+      </div>
+
+      <!-- Fields common to both Member and Non-Member -->
+      <div class="form-group common-fields">
         <label for="fname"><i class="fas fa-user-tag"></i> First Name:</label>
         <input type="text" id="fname" required>
       </div>
-
-      <div class="form-group">
+      <div class="form-group common-fields">
         <label for="mname"><i class="fas fa-user-tag"></i> Middle Name:</label>
         <input type="text" id="mname">
       </div>
-
-      <div class="form-group">
+      <div class="form-group common-fields">
         <label for="lname"><i class="fas fa-user-tag"></i> Last Name:</label>
         <input type="text" id="lname" required>
       </div>
-
-      <div class="form-group">
+      <div class="form-group common-fields">
         <label for="birthday"><i class="fas fa-cake-candles"></i> Date of Birth:</label>
         <input type="date" id="birthday" placeholder="mm/dd/yyyy" required>
       </div>
-
-      <div class="form-group">
-        <label for="street"><i class="fas fa-road"></i> Street:</label>
-        <input type="text" id="street" required>
-      </div>
-
-      <!-- House Number: Only digits allowed -->
-      <div class="form-group">
-        <label for="house-number"><i class="fas fa-home"></i> House Number:</label>
-        <input type="text" id="house-number" pattern="\d+" title="House Number must contain only digits." required>
-      </div>
-
-      <div class="form-group">
-        <label for="city"><i class="fas fa-city"></i> City:</label>
-        <input type="text" id="city" required>
-      </div>
-
-      <div class="form-group">
-        <label for="state"><i class="fas fa-flag-usa"></i> State:</label>
-        <input type="text" id="state" required>
-      </div>
-
-      <!-- Zip Code: Only digits allowed (5 digits) -->
-      <div class="form-group">
-        <label for="zip-code"><i class="fas fa-mail-bulk"></i> Zip Code:</label>
-        <input type="text" id="zip-code" pattern="\d{5}" title="Zip Code must be 5 digits." required>
-      </div>
-
-      <!-- Phone Number: Fixed format input mask -->
-      <div class="form-group">
+      <div class="form-group common-fields">
         <label for="phone"><i class="fas fa-phone"></i> Phone Number:</label>
         <div class="phone-input-container">
           <span class="phone-prefix">+1</span>
@@ -114,14 +92,31 @@
         </div>
       </div>
 
-      <div class="form-group">
-        <label for="membership-type"><i class="fas fa-id-card"></i> Membership Type:</label>
-        <select id="membership-type" required>
-          <option value="member">Member</option>
-          <option value="non-member">Non-Member</option>
-        </select>
+      <!-- Member-only Fields -->
+      <div class="member-only">
+        <div class="form-group">
+          <label for="street"><i class="fas fa-road"></i> Street:</label>
+          <input type="text" id="street" required>
+        </div>
+        <div class="form-group">
+          <label for="house-number"><i class="fas fa-home"></i> House Number:</label>
+          <input type="text" id="house-number" pattern="\d+" title="House Number must contain only digits." required>
+        </div>
+        <div class="form-group">
+          <label for="city"><i class="fas fa-city"></i> City:</label>
+          <input type="text" id="city" required>
+        </div>
+        <div class="form-group">
+          <label for="state"><i class="fas fa-flag-usa"></i> State:</label>
+          <input type="text" id="state" required>
+        </div>
+        <div class="form-group">
+          <label for="zip-code"><i class="fas fa-mail-bulk"></i> Zip Code:</label>
+          <input type="text" id="zip-code" pattern="\d{5}" title="Zip Code must be 5 digits." required>
+        </div>
       </div>
 
+      <!-- Buttons -->
       <div class="button-group">
         <button id="signup-button" type="submit" class="success-button">
           <i class="fas fa-user-plus"></i> Create Account
@@ -131,7 +126,6 @@
         </button>
       </div>
     </form>
-
     <p id="signup-message"></p>
   </div>
 
@@ -140,5 +134,37 @@
   </footer>
 
   <script src="../js/signup.js"></script>
+  <script>
+    // Toggle member-only fields based on the membership type selection.
+    const membershipSelect = document.getElementById("membership-type");
+    const memberOnlySection = document.querySelector(".member-only");
+
+    function toggleMemberFields() {
+      const inputs = memberOnlySection.querySelectorAll("input");
+      if (membershipSelect.value === "non-member") {
+        memberOnlySection.style.display = "none";
+        inputs.forEach(input => {
+          input.disabled = true;
+          input.value = "";
+          input.removeAttribute("required");
+        });
+      } else {
+        memberOnlySection.style.display = "block";
+        inputs.forEach(input => {
+          input.disabled = false;
+          input.setAttribute("required", "required");
+        });
+      }
+    }
+
+    // Run on page load and whenever the selection changes.
+    toggleMemberFields();
+    membershipSelect.addEventListener("change", toggleMemberFields);
+
+    // Ensure toggle before form submission (optional safeguard)
+    document.getElementById("signup-form").addEventListener("submit", function () {
+      toggleMemberFields();
+    });
+  </script>
 </body>
 </html>

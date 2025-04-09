@@ -23,6 +23,7 @@ document.addEventListener("DOMContentLoaded", async function() {
                     <div class="program-card">
                         <h3>${program.name}</h3>
                         <p><strong>Description:</strong> ${program.description}</p>
+                        <p><strong>Date:</strong> ${program.startDate} to ${program.endDate}</p>
                         <p><strong>Time:</strong> ${program.startTime} - ${program.endTime}</p>
                         <p><strong>Location:</strong> ${program.location}</p>
                         <p><strong>Price:</strong> $${program.priceMember} (Member) / $${program.priceNonMember} (Non-Member)</p>
@@ -39,7 +40,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         programList.innerHTML = "<p>Error loading programs.</p>";
     }
 
-    // Register button event listener (for all users)
+    // Event listener for Register buttons (all users)
     document.querySelectorAll(".register-btn").forEach(button => {
         button.addEventListener("click", function() {
             const programId = this.getAttribute("data-id");
@@ -47,11 +48,10 @@ document.addEventListener("DOMContentLoaded", async function() {
         });
     });
 
-    // Delete button event listener (only visible to staff)
+    // Event listener for Delete buttons (only visible to staff)
     document.querySelectorAll(".delete-btn").forEach(button => {
         button.addEventListener("click", async function() {
             const programId = this.getAttribute("data-id");
-            // Check token exists before deleting
             const token = localStorage.getItem("token");
             if (!token) {
                 alert("Please log in to delete a class.");

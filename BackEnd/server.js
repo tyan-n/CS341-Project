@@ -179,8 +179,26 @@ app.post("/api/signup", async (req, res) => {
           acctType
         ];
       } else if (membershipType === "non-member") {
-        sql = "INSERT INTO NonMember (Email, Password) VALUES (?, ?)";
-        params = [username.trim(), hashedPassword];
+        // For non-members, insert additional details into NonMember table.
+        // Ensure your NonMember table schema includes FName, LName, MName, Birthday, Email, PhoneNumber, and Password.
+        sql = `INSERT INTO NonMember (
+                  FName,
+                  LName,
+                  MName,
+                  Birthday,
+                  Email,
+                  PhoneNumber,
+                  Password
+               ) VALUES (?, ?, ?, ?, ?, ?, ?)`;
+        params = [
+          fname.trim(),
+          lname.trim(),
+          mname ? mname.trim() : null,
+          birthday.trim(),
+          username.trim(),
+          phone.trim(),
+          hashedPassword
+        ];
       } else {
         return res.status(400).json({ error: "Invalid membership type" });
       }
@@ -221,46 +239,61 @@ app.post("/api/programs", (req, res) => {
     // Normalize today's date to midnight
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    // Normalize start date from input to midnight for comparison
+    // Normalize the provided start date to midnight for comparison
     const classStartDate = new Date(programData.startDate);
     classStartDate.setHours(0, 0, 0, 0);
 
-    // Staff cannot set up a class before today
+    // Prevent staff from setting up a class before today
     if (classStartDate < today) {
         return res.status(400).json({ error: "Cannot set up a class before today's date." });
     }
 
-    // Build full start and end DateTime objects
+    // Build full start and end DateTime objects using the provided values
+    // (Assumes front-end sends lower-case property names)
     const startDateTime = new Date(`${programData.startDate}T${programData.startTime}`);
     const endDateTime = new Date(`${programData.endDate}T${programData.endTime}`);
-    
-    // Validate that the end date/time is after the start date/time
+
+    // Validate that the end date/time is strictly after the start date/time
     if (endDateTime <= startDateTime) {
         return res.status(400).json({ error: "End date and time must be after start date and time." });
     }
 
-    // If class is scheduled for today, ensure start time is after current time
+    // If the class is scheduled for today, ensure the start time is after the current time
     const now = new Date();
     if (classStartDate.getTime() === today.getTime() && startDateTime < now) {
         return res.status(400).json({ error: "For classes scheduled today, the start time must be after the current time." });
     }
     // --- End Date & Time Validations ---
 
+    // Conflict check: only classes in the same room need to be checked.
+    const conflictQuery = "SELECT * FROM Class WHERE RoomNumber = ?";
+    
+    // Helper function supports both lower-case and upper-case keys for date/time values:
     function isClassTimeConflict(newClass, existingClass) {
-        const newEndDate = newClass.endDate || newClass.startDate;
-        const existEndDate = existingClass.EndDate || existingClass.StartDate;
-        const newStart = new Date(`${newClass.startDate}T${newClass.startTime}`);
-        const newEnd = new Date(`${newEndDate}T${newClass.endTime}`);
-        const existStart = new Date(`${existingClass.StartDate}T${existingClass.StartTime}`);
-        const existEnd = new Date(`${existEndDate}T${existingClass.EndTime}`);
+        const newStartDate = newClass.startDate || newClass.StartDate;
+        const newStartTime = newClass.startTime || newClass.StartTime;
+        const newEndDate = newClass.endDate || newClass.EndDate || newStartDate;
+        const newEndTime = newClass.endTime || newClass.EndTime;
+        const existStartDate = existingClass.startDate || existingClass.StartDate;
+        const existStartTime = existingClass.startTime || existingClass.StartTime;
+        const existEndDate = existingClass.endDate || existingClass.EndDate || existStartDate;
+        const existEndTime = existingClass.endTime || existingClass.EndTime;
+      
+        const newStart = new Date(`${newStartDate}T${newStartTime}`);
+        const newEnd = new Date(`${newEndDate}T${newEndTime}`);
+        const existStart = new Date(`${existStartDate}T${existStartTime}`);
+        const existEnd = new Date(`${existEndDate}T${existEndTime}`);
+      
+        // Returns true if new class overlaps with the existing class.
         return newStart < existEnd && existStart < newEnd;
     }
-    const conflictQuery = "SELECT * FROM Class WHERE RoomNumber = ?";
+
     db.all(conflictQuery, [programData.location], (err, existingClasses) => {
         if (err) {
             console.error("Error checking for class conflicts:", err);
             return res.status(500).json({ error: "Database error during conflict check" });
         }
+        // Loop through existing classes in the same room
         for (const existing of existingClasses) {
             if (isClassTimeConflict(programData, existing)) {
                 return res.status(400).json({
@@ -268,6 +301,7 @@ app.post("/api/programs", (req, res) => {
                 });
             }
         }
+        // If no conflict, insert the new class.
         const sql = `
             INSERT INTO Class (
                 ClassName, 
@@ -324,6 +358,8 @@ app.get("/api/programs", (req, res) => {
             ClassID AS id,
             ClassName AS name, 
             Description AS description, 
+            StartDate AS startDate,
+            EndDate AS endDate,
             StartTime AS startTime, 
             EndTime AS endTime,
             RoomNumber AS location, 
@@ -606,18 +642,17 @@ app.post("/api/register", authenticateToken, (req, res) => {
 /* ----------------------------------------
    9) Delete a Class (Employees Only)
 ---------------------------------------- */
-
 app.delete("/api/programs/:id", authenticateToken, (req, res) => {
     const classId = req.params.id;
     const userEmail = req.user.email;
 
-    // Check the Member table for the logged-in user's AcctType
+    // Check the Member table for the logged-in user's AcctType (case-insensitive)
     db.get("SELECT AcctType FROM Member WHERE LOWER(Email) = LOWER(?)", [userEmail.trim()], (err, member) => {
         if (err) {
             console.error("Error fetching member info:", err);
             return res.status(500).json({ error: "Database error" });
         }
-        // If no member record found or AcctType is not "Employee", deny deletion.
+        // Only allow deletion if the AcctType is "Employee"
         if (!member || member.AcctType !== "Employee") {
             return res.status(403).json({ error: "Access denied: Only employees can delete classes." });
         }
@@ -634,6 +669,6 @@ app.delete("/api/programs/:id", authenticateToken, (req, res) => {
         });
     });
 });
-
+  
 // Start server
 app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
