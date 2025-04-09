@@ -285,7 +285,7 @@ app.post("/api/programs", (req, res) => {
         const existEnd = new Date(`${existEndDate}T${existEndTime}`);
       
         // Returns true if new class overlaps with the existing class.
-        return newStart < existEnd && existStart < newEnd;
+        return newStart < existEnd && existStart < newEnd && newStart.getDay() == existStart.getDay();
     }
 
     db.all(conflictQuery, [programData.location], (err, existingClasses) => {
@@ -312,7 +312,7 @@ app.post("/api/programs", (req, res) => {
                 EndDate, 
                 StartTime, 
                 EndTime, 
-                CurrCapacity, 
+                MaxCapacity, 
                 MemPrice, 
                 NonMemPrice, 
                 AgeGroup, 
@@ -547,7 +547,7 @@ function isTimeConflict(newClass, existingClass) {
     const newEnd = new Date(`${newEndDate}T${newClass.EndTime}`);
     const existStart = new Date(`${existingClass.StartDate}T${existingClass.StartTime}`);
     const existEnd = new Date(`${existEndDate}T${existingClass.EndTime}`);
-    return newStart < existEnd && existStart < newEnd;
+    return newStart < existEnd && existStart < newEnd && newStart.getDay() == existStart.getDay();
 }
   
 app.post("/api/register", authenticateToken, (req, res) => {
@@ -631,12 +631,24 @@ app.post("/api/register", authenticateToken, (req, res) => {
                                 return res.status(500).json({ error: "Database error" });
                             }
                         }
+
+                    
+                    db.run(
+                        "UPDATE Class SET CurrCapacity = CurrCapacity + 1 WHERE ClassID = ?",
+                        [programId],
+                        function (err) {
+                            if (err) {
+                                console.error("Error updating CurrCapacity:", err);
+                                return res.status(500).json({ error: "Registration saved, but failed to update capacity." });
+                            }
+
                         res.json({ message: "Registration successful!" });
                     });
                 });
             });
         });
     });
+});
 });
   
 /* ----------------------------------------

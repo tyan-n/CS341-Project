@@ -46,7 +46,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       entry.className = "class-entry";
 
       // Compute the top offset based on the class's start time, then add the header offset.
-      const top = timeToOffset(cls.startTime) + headerOffset;
+      const top = timeToOffset(cls.startTime) - 420 + headerOffset;
       entry.style.top = `${top}px`;
 
       // Compute the height based on the class duration
