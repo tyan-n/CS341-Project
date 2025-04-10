@@ -2,11 +2,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   const token = localStorage.getItem("token");
   const username = localStorage.getItem("username");
 
-  if (!token || !username) {
-    window.location.href = "login.html";
-    return;
-  }
-
   const msg = document.getElementById("family-message");
   const createSection = document.getElementById("create-family-form");
   const dashboard = document.getElementById("family-dashboard");
