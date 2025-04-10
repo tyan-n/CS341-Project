@@ -592,48 +592,59 @@ app.post("/api/register", authenticateToken, (req, res) => {
           userId = nonMember.NonMemID;
           idField = "NonMemID";
         }
-        // Exclude the class being registered from conflict check.
-        const registrationsQuery = `
-          SELECT c.StartDate, c.EndDate, c.StartTime, c.EndTime, c.RoomNumber 
-          FROM Register r
-          JOIN Class c ON r.ClassID = c.ClassID
-          WHERE r.${idField} = ? AND c.ClassID != ?
-        `;
-        db.all(registrationsQuery, [userId, programId], (err, registrations) => {
+        // NEW: Check if the user is already registered for this program.
+        const checkRegQuery = `SELECT * FROM Register WHERE ${idField} = ? AND ClassID = ?`;
+        db.get(checkRegQuery, [userId, programId], (err, existingReg) => {
           if (err) {
-            console.error("Error fetching registrations:", err);
-            return res.status(500).json({ error: "Error fetching registrations" });
+            console.error("Error checking registration:", err);
+            return res.status(500).json({ error: "Database error" });
           }
-          for (const reg of registrations) {
-            if (isTimeConflict(newClass, reg)) {
-              return res.status(400).json({
-                error: "Scheduling conflict: You are already registered for a class at this time."
-              });
-            }
+          if (existingReg) {
+            return res.status(400).json({ error: "You are already registered for this program." });
           }
-          const query = member
-            ? "INSERT INTO Register (MemID, ClassID) VALUES (?, ?)"
-            : "INSERT INTO Register (NonMemID, ClassID) VALUES (?, ?)";
-          const params = member ? [member.MemID, programId] : [nonMember.NonMemID, programId];
-          db.run(query, params, function (err) {
+          // Exclude the class being registered from conflict check.
+          const registrationsQuery = `
+            SELECT c.StartDate, c.EndDate, c.StartTime, c.EndTime, c.RoomNumber 
+            FROM Register r
+            JOIN Class c ON r.ClassID = c.ClassID
+            WHERE r.${idField} = ? AND c.ClassID != ?
+          `;
+          db.all(registrationsQuery, [userId, programId], (err, registrations) => {
             if (err) {
-              if (err.code === "SQLITE_CONSTRAINT") {
-                return res.status(400).json({ error: "You are already registered for this program." });
-              } else {
-                console.error("Error registering user:", err);
-                return res.status(500).json({ error: "Database error" });
+              console.error("Error fetching registrations:", err);
+              return res.status(500).json({ error: "Error fetching registrations" });
+            }
+            for (const reg of registrations) {
+              if (isTimeConflict(newClass, reg)) {
+                return res.status(400).json({
+                  error: "Scheduling conflict: You are already registered for a class at this time."
+                });
               }
             }
-            db.run("UPDATE Class SET CurrCapacity = CurrCapacity + 1 WHERE ClassID = ?",
-              [programId],
-              function (err) {
-                if (err) {
-                  console.error("Error updating CurrCapacity:", err);
-                  return res.status(500).json({ error: "Registration saved, but failed to update capacity." });
+            const query = member
+              ? "INSERT INTO Register (MemID, ClassID) VALUES (?, ?)"
+              : "INSERT INTO Register (NonMemID, ClassID) VALUES (?, ?)";
+            const params = member ? [member.MemID, programId] : [nonMember.NonMemID, programId];
+            db.run(query, params, function (err) {
+              if (err) {
+                if (err.code === "SQLITE_CONSTRAINT") {
+                  return res.status(400).json({ error: "You are already registered for this program." });
+                } else {
+                  console.error("Error registering user:", err);
+                  return res.status(500).json({ error: "Database error" });
                 }
-                res.json({ message: "Registration successful!" });
               }
-            );
+              db.run("UPDATE Class SET CurrCapacity = CurrCapacity + 1 WHERE ClassID = ?",
+                [programId],
+                function (err) {
+                  if (err) {
+                    console.error("Error updating CurrCapacity:", err);
+                    return res.status(500).json({ error: "Registration saved, but failed to update capacity." });
+                  }
+                  res.json({ message: "Registration successful!" });
+                }
+              );
+            });
           });
         });
       });
