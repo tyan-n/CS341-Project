@@ -176,8 +176,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       entry.innerHTML = `
         <strong>${reg.name}</strong><br>
         ${reg.startTime} – ${reg.endTime}<br>
-        Class Number: ${reg.id}<br>
-        <em>${reg.location}</em><br>
+        <em>Location: Room ${reg.location}</em><br>
         <button class="unregister-btn" data-id="${reg.id}" data-occurrence="${occStr}">Unregister</button>
       `;
 
