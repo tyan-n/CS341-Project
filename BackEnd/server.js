@@ -185,7 +185,7 @@ app.post("/api/programs", (req, res) => {
   // Perform a conflict check for the first occurrence.
   const conflictQuery = `
     SELECT * FROM Class 
-    WHERE RoomNumber = ? AND StartDate = ? AND StartTime = ?
+    WHERE RoomNumber = ? AND StartDate = ? AND StartTime = ? AND Status != 'Inactive'
   `;
   db.get(conflictQuery, [programData.location, programData.startDate, programData.startTime], (err, conflict) => {
     if (err) {
@@ -675,7 +675,7 @@ app.post("/api/register", authenticateToken, (req, res) => {
             c.Frequency AS frequency
           FROM Register r
           JOIN Class c ON r.ClassID = c.ClassID
-          WHERE r.MemID = ?
+          WHERE r.MemID = ? AND c.Status != 'Inactive'
       `;
       db.all(query, [member.MemID], (err, rows) => {
         if (err) {
@@ -705,7 +705,7 @@ app.post("/api/register", authenticateToken, (req, res) => {
               c.Frequency AS frequency
             FROM Register r
             JOIN Class c ON r.ClassID = c.ClassID
-            WHERE r.NonMemID = ?
+            WHERE r.NonMemID = ? AND c.Status != 'Inactive'
         `;
         db.all(query, [nonMember.NonMemID], (err, rows) => {
           if (err) {
