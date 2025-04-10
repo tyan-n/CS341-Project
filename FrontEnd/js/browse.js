@@ -11,14 +11,9 @@ document.addEventListener("DOMContentLoaded", async function () {
 
         if (activePrograms.length > 0) {
             programList.innerHTML = activePrograms.map(program => {
-                let buttonsHTML = `
-                    <button class="register-btn ymca-button" data-id="${program.id}">Register</button>
-                `;
-
+                let buttonsHTML = `<button class="register-btn ymca-button" data-id="${program.id}">Register</button>`;
                 if (role === "staff") {
-                    buttonsHTML += `
-                        <button class="delete-btn ymca-button" data-id="${program.id}">Delete Class</button>
-                    `;
+                    buttonsHTML += `<button class="delete-btn ymca-button" data-id="${program.id}">Delete Class</button>`;
                 }
 
                 return `
@@ -42,7 +37,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         programList.innerHTML = "<p>Error loading programs.</p>";
     }
 
-    // Register button listener
+    // Register and delete button listeners
     document.addEventListener("click", function (e) {
         if (e.target.classList.contains("register-btn")) {
             const programId = e.target.getAttribute("data-id");
