@@ -57,7 +57,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       dayDate.setDate(dayDate.getDate() + i);
       const dayCol = document.createElement("div");
       dayCol.className = "day-column";
-      // Use our local date string helper.
       dayCol.setAttribute("data-date", getLocalDateString(dayDate));
       const header = document.createElement("h3");
       header.textContent = dayDate.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
@@ -94,7 +93,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       headers: { Authorization: `Bearer ${token}` }
     });
     registrations = await res.json();
-    console.log("Fetched registrations:", registrations);
     if (!Array.isArray(registrations) || registrations.length === 0) {
       noClassesMsg.textContent = "You are not registered for any classes.";
       return;
@@ -105,9 +103,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
-  // Instead of forcing noon, create the occurrence date using the local date constructor.
+  // Create occurrence date from local date parts.
   function getOccurrenceDate(baseDateStr, weekOffset) {
-    // Split the base date string and use new Date(year, monthIndex, day)
     const dateOnly = baseDateStr.split("T")[0];
     const parts = dateOnly.split("-");
     const year = Number(parts[0]);
@@ -129,11 +126,44 @@ document.addEventListener("DOMContentLoaded", async () => {
         expanded.push(occurrence);
       }
     });
-    console.log("Expanded registrations:", expanded);
     return expanded;
   }
 
   const expandedRegistrations = expandRegistrations(registrations);
+
+  // Modal for notifications.
+  function showNotificationModal(message) {
+    const modal = document.getElementById("notification-modal");
+    const modalMessage = document.getElementById("notification-modal-message");
+    modalMessage.innerText = message;
+    modal.style.display = "block";
+  }
+  function closeNotificationModal() {
+    document.getElementById("notification-modal").style.display = "none";
+  }
+  document.getElementById("notification-modal-close").addEventListener("click", closeNotificationModal);
+
+  // Confirm modal for unregistering.
+  function showConfirmModal(message, onConfirm) {
+    const modal = document.getElementById("confirm-modal");
+    const modalMessage = document.getElementById("confirm-modal-message");
+    const confirmBtn = document.getElementById("confirm-modal-confirm");
+    const cancelBtn = document.getElementById("confirm-modal-cancel");
+    modalMessage.innerText = message;
+    modal.style.display = "block";
+    // Remove previous event listeners by cloning the node.
+    const newConfirmBtn = confirmBtn.cloneNode(true);
+    confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+    const newCancelBtn = cancelBtn.cloneNode(true);
+    cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+    newConfirmBtn.addEventListener("click", () => {
+      onConfirm();
+      modal.style.display = "none";
+    });
+    newCancelBtn.addEventListener("click", () => {
+      modal.style.display = "none";
+    });
+  }
 
   function renderClasses() {
     const dayCols = document.querySelectorAll(".day-column");
@@ -146,21 +176,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     expandedRegistrations.forEach(reg => {
       const occDate = new Date(reg.occurrenceDate);
       const occStr = getLocalDateString(occDate);
-      // Only render if occDate is within the current week.
       const weekEnd = new Date(currentWeekStart);
       weekEnd.setDate(weekEnd.getDate() + 6);
       if (occDate < currentWeekStart || occDate > weekEnd) return;
 
       const dayCol = document.querySelector(`.day-column[data-date="${occStr}"]`);
-      if (!dayCol) {
-        console.warn("No day column for:", occStr);
-        return;
-      }
+      if (!dayCol) return;
 
       const [startH, startM] = reg.startTime.split(":").map(Number);
       const offsetMinutes = startH * 60 + startM;
       const topPx = offsetMinutes - (7 * 60);
-      
+
       const [endH, endM] = reg.endTime.split(":").map(Number);
       const durationMinutes = (endH * 60 + endM) - (startH * 60 + startM);
       const computedHeight = Math.max(durationMinutes, 40);
@@ -172,11 +198,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       entry.style.whiteSpace = "normal";
       entry.style.overflow = "hidden";
 
-      // Removed the date display because the column indicates the date.
+      // Removed date display from the box.
       entry.innerHTML = `
         <strong>${reg.name}</strong><br>
         ${reg.startTime} – ${reg.endTime}<br>
-        <em>Location: Room ${reg.location}</em><br>
+        Class Number: ${reg.id}<br>
+        <em>${reg.location}</em><br>
         <button class="unregister-btn" data-id="${reg.id}" data-occurrence="${occStr}">Unregister</button>
       `;
 
@@ -185,25 +212,27 @@ document.addEventListener("DOMContentLoaded", async () => {
       const finalHeight = Math.max(computedHeight, contentHeight);
       entry.style.height = finalHeight + "px";
 
-      entry.querySelector(".unregister-btn").addEventListener("click", async function () {
-        if (!confirm("Are you sure you want to unregister from this class occurrence?")) return;
-        try {
-          const deleteRes = await fetch(`http://localhost:5000/api/registrations/${reg.id}`, {
-            method: "DELETE",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`
+      entry.querySelector(".unregister-btn").addEventListener("click", function () {
+        showConfirmModal("Are you sure you want to unregister from this class occurrence?", async () => {
+          try {
+            const deleteRes = await fetch(`http://localhost:5000/api/registrations/${reg.id}`, {
+              method: "DELETE",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`
+              }
+            });
+            if (deleteRes.ok) {
+              showNotificationModal("Unregistered successfully!");
+              entry.remove();
+            } else {
+              showNotificationModal("Failed to unregister.");
             }
-          });
-          if (deleteRes.ok) {
-            entry.remove();
-          } else {
-            alert("Failed to unregister.");
+          } catch (err) {
+            console.error("Unregister error:", err);
+            showNotificationModal("Error unregistering from class.");
           }
-        } catch (err) {
-          console.error("Unregister error:", err);
-          alert("Error unregistering from class.");
-        }
+        });
       });
     });
   }

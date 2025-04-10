@@ -590,4 +590,155 @@ app.post("/api/register", authenticateToken, (req, res) => {
   });
 });
 
+/* ----------------------------------------
+    FAMILY ACCOUNT ROUTES
+ ---------------------------------------- */
+ 
+ // 1. Create a new family account
+ app.post("/api/family/create", authenticateToken, (req, res) => {
+  const email = req.user.email;
+
+  db.get("SELECT MemID FROM Member WHERE Email = ?", [email], (err, member) => {
+      if (err || !member) return res.status(500).json({ error: "Member not found" });
+
+      const memID = member.MemID;
+      const familyName = `${email.split("@")[0]}'s Family`;
+
+      db.run("INSERT INTO FamilyAccount (FamilyName, FamilyOwnerID) VALUES (?, ?)", [familyName, memID], function (err) {
+          if (err) return res.status(500).json({ error: "Failed to create family" });
+
+          const familyID = this.lastID;
+          db.run("INSERT INTO FamilyMember (FamilyID, MemID) VALUES (?, ?)", [familyID, memID], (err) => {
+              if (err) return res.status(500).json({ error: "Failed to join family" });
+              res.json({ message: "Family created", familyID });
+          });
+      });
+  });
+});
+
+// 2. Get family status for logged-in user and return all member info
+app.get("/api/account/family-status", authenticateToken, (req, res) => {
+  const email = req.user.email;
+
+  db.get("SELECT MemID FROM Member WHERE Email = ?", [email], (err, member) => {
+      if (err || !member) return res.status(404).json({ inFamily: false });
+
+      const memID = member.MemID;
+
+      const findFamilyQuery = `
+          SELECT f.FamilyID, f.FamilyName, f.FamilyOwnerID
+          FROM FamilyAccount f
+          JOIN FamilyMember fm ON f.FamilyID = fm.FamilyID
+          WHERE fm.MemID = ?
+      `;
+
+      db.get(findFamilyQuery, [memID], (err, family) => {
+          if (err || !family) return res.json({ inFamily: false });
+
+          const isOwner = family.FamilyOwnerID === memID;
+
+          const getMembersQuery = `
+              SELECT m.Email AS email, m.MemID AS memID, m.FName || ' ' || m.LName AS fullName
+              FROM FamilyMember fm
+              JOIN Member m ON fm.MemID = m.MemID
+              WHERE fm.FamilyID = ?
+          `;
+
+          db.all(getMembersQuery, [family.FamilyID], (err, members) => {
+              if (err) return res.status(500).json({ error: "Error loading family members" });
+
+              res.json({
+                  inFamily: true,
+                  isOwner,
+                  owner: family.FamilyName,
+                  id: family.FamilyID,
+                  members: members.map(m => ({
+                      memID: m.memID,
+                      email: m.email,
+                      fullName: m.fullName
+                  }))
+              });
+          });
+      });
+  });
+});
+
+
+// 3. Add a user to family
+app.post("/api/family/add", authenticateToken, (req, res) => {
+  const ownerEmail = req.user.email;
+  const { username } = req.body;
+
+  if (!username) return res.status(400).json({ error: "Missing username" });
+
+  db.get("SELECT MemID FROM Member WHERE Email = ?", [ownerEmail], (err, owner) => {
+      if (err || !owner) return res.status(400).json({ error: "Owner not found" });
+
+      db.get("SELECT FamilyID FROM FamilyAccount WHERE FamilyOwnerID = ?", [owner.MemID], (err, family) => {
+          if (err || !family) return res.status(400).json({ error: "Family not found" });
+
+          db.get("SELECT MemID FROM Member WHERE Email = ?", [username], (err, newMem) => {
+              if (err || !newMem) return res.status(404).json({ error: "User is not a YMCA Member" });
+
+              db.run("INSERT INTO FamilyMember (FamilyID, MemID) VALUES (?, ?)", [family.FamilyID, newMem.MemID], (err) => {
+                  if (err) return res.status(500).json({ error: "Failed to add user to family" });
+                  res.json({ message: "User added to family" });
+              });
+          });
+      });
+  });
+});
+
+// 4. Remove a user from family (owner-only)
+app.delete("/api/family/remove/:username", authenticateToken, (req, res) => {
+  const ownerEmail = req.user.email;
+  const targetEmail = req.params.username;
+
+  db.get("SELECT MemID FROM Member WHERE Email = ?", [ownerEmail], (err, owner) => {
+      if (err || !owner) return res.status(400).json({ error: "Owner not found" });
+
+      db.get("SELECT FamilyID, FamilyOwnerID FROM FamilyAccount WHERE FamilyOwnerID = ?", [owner.MemID], (err, family) => {
+          if (err || !family) return res.status(400).json({ error: "Not family owner" });
+
+          db.get("SELECT MemID FROM Member WHERE Email = ?", [targetEmail], (err, member) => {
+              if (err || !member) return res.status(404).json({ error: "Target not found" });
+
+              // Prevent removing the owner themselves
+              if (member.MemID === family.FamilyOwnerID) {
+                  return res.status(400).json({ error: "Cannot remove the family owner. Please delete the family instead." });
+              }
+
+              db.run("DELETE FROM FamilyMember WHERE FamilyID = ? AND MemID = ?", [family.FamilyID, member.MemID], function (err) {
+                  if (err || this.changes === 0) {
+                      return res.status(500).json({ error: "Removal failed" });
+                  }
+                  res.json({ message: "User removed from family" });
+              });
+          });
+      });
+  });
+});
+
+
+// 5. Delete the entire family (owner only)
+app.delete("/api/family/delete/:id", authenticateToken, (req, res) => {
+  const ownerEmail = req.user.email;
+  const familyID = req.params.id;
+
+  db.get("SELECT MemID FROM Member WHERE Email = ?", [ownerEmail], (err, owner) => {
+      if (err || !owner) return res.status(400).json({ error: "Owner not found" });
+
+      db.get("SELECT * FROM FamilyAccount WHERE FamilyID = ? AND FamilyOwnerID = ?", [familyID, owner.MemID], (err, fam) => {
+          if (err || !fam) return res.status(403).json({ error: "Not authorized to delete this family" });
+
+          db.run("DELETE FROM FamilyMember WHERE FamilyID = ?", [familyID], () => {
+              db.run("DELETE FROM FamilyAccount WHERE FamilyID = ?", [familyID], function (err) {
+                  if (err) return res.status(500).json({ error: "Failed to delete family" });
+                  res.json({ message: "Family deleted" });
+              });
+          });
+      });
+  });
+});
+
 app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));

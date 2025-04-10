@@ -1,60 +1,84 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register for a Program</title>
-    <link rel="stylesheet" href="../css/styles.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register for a Program</title>
+  <link rel="stylesheet" href="../css/styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    /* Modal Styles */
+    .modal {
+      display: none; /* Hidden by default */
+      position: fixed;
+      z-index: 9999;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto; 
+      background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+    }
+    .modal-content {
+      background-color: #fefefe;
+      margin: 15% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 80%;
+      max-width: 300px;
+      text-align: center;
+      border-radius: 8px;
+    }
+    .close-button {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .close-button:hover,
+    .close-button:focus {
+      color: black;
+    }
+    .modal-login-button {
+      padding: 10px 20px;
+      margin-top: 15px;
+      font-size: 16px;
+      border: none;
+      border-radius: 5px;
+      background-color: #0077cc;
+      color: white;
+      cursor: pointer;
+    }
+    .modal-login-button:hover {
+      background-color: #005fa3;
+    }
+  </style>
 </head>
 <body>
+  <script src="../js/navbar.js"></script>
+  <main class="register-container">
+    <h2 class="register-title">Program Details</h2>
+    <p class="register-description">You're just one step away from joining an amazing YMCA program! Review the details and confirm your registration.</p>
+    <div id="program-details" class="program-details-box"></div>
+    <button id="confirm-register" class="success-button">
+      <i class="fas fa-check-circle"></i> Confirm Registration
+    </button>
+    <p id="registration-message"></p>
 
-    <!--  Smart navbar goes here -->
-    <script src="../js/navbar.js"></script>
-    <!--
-    <header class="ymca-header">
-       
+    <!-- Modal Container -->
+    <div id="login-modal" class="modal">
+      <div class="modal-content">
+        <span class="close-button">&times;</span>
+        <p>Please log in before registering.</p>
+        <button id="modal-login-btn" class="modal-login-button">Log In</button>
+      </div>
+    </div>
+  </main>
 
-        <span class="logo">😊</span> <!-- Smiley Face as a Temporary Logo -->
-    <!--   <h1>Register for a YMCA Program</h1>
-
-        <!-- Sign In / Register Button -->
-    <!--     <button id="signin-button">
-            <i class="fas fa-user"></i> Sign In / Register
-        </button>
-        
-        <script>
-        document.getElementById("signin-button").addEventListener("click", function() {
-            // Clear token
-            localStorage.removeItem("token");
-            localStorage.removeItem("role");
-        
-            // If this file is in /pages, go UP one directory to index.html
-            window.location.href = "../index.html";
-        });
-        </script>
-    </header>
-    -->
-    
-    <main class="register-container">
-        <h2 class="register-title">Program Details</h2>
-        <p class="register-description">You're just one step away from joining an amazing YMCA program! Review the details and confirm your registration.</p>
-
-        <div id="program-details" class="program-details-box"></div>
-
-        <button id="confirm-register" class="success-button">
-            <i class="fas fa-check-circle"></i> Confirm Registration
-        </button>
-
-        <p id="registration-message"></p>
-    </main>
-
-    <footer class="ymca-footer">
-        <p>© 2025 YMCA. Empowering Communities. Building Healthy Lives.</p>
-    </footer>
-
-    <script src="../js/register.js"></script>
-    <!-- Include the logout script last -->
-   
+  <footer class="ymca-footer">
+    <p>Â© 2025 YMCA. Empowering Communities. Building Healthy Lives.</p>
+  </footer>
+  <script src="../js/register.js"></script>
 </body>
 </html>
