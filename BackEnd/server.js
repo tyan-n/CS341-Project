@@ -343,69 +343,120 @@ app.get("/api/programs/:id", (req, res) => {
 });
 
 /* ----------------------------------------
-   Get Registrations for the Authenticated User
----------------------------------------- */
-app.get("/api/registrations", authenticateToken, (req, res) => {
-  const userEmail = req.user.email;
-  db.get("SELECT MemID FROM Member WHERE Email = ?", [userEmail], (err, member) => {
-    if (err) {
-      console.error("Error fetching member info:", err);
-      return res.status(500).json({ error: "Database error" });
-    }
-    if (member) {
-      const query = `
-          SELECT 
-            c.StartDate AS startDate, 
-            c.EndDate AS endDate, 
-            c.StartTime AS startTime, 
-            c.EndTime AS endTime, 
-            c.RoomNumber AS location, 
-            c.ClassName AS name, 
-            c.ClassID AS id,
-            c.Frequency AS frequency
-          FROM Register r
-          JOIN Class c ON r.ClassID = c.ClassID
-          WHERE r.MemID = ?
-      `;
-      db.all(query, [member.MemID], (err, rows) => {
-        if (err) {
-          console.error("Error fetching registrations:", err);
-          return res.status(500).json({ error: "Database error" });
-        }
-        res.json(rows);
+    MANAGE USERS & CLASS ASSIGNMENT (MEMBER + NONMEMBER)
+ ---------------------------------------- */
+ 
+ // Get user profile (status or nonmember flag)
+ app.get("/api/users/:email/profile", authenticateToken, (req, res) => {
+  const email = req.params.email.trim().toLowerCase();
+
+  db.get("SELECT Status FROM Member WHERE LOWER(Email) = ?", [email], (err, member) => {
+      if (err) return res.status(500).json({ error: "Database error" });
+      if (member) return res.json({ type: "member", email, status: member.Status.toLowerCase() });
+
+      db.get("SELECT * FROM NonMember WHERE LOWER(Email) = ?", [email], (err, nonmem) => {
+          if (err) return res.status(500).json({ error: "Database error" });
+          if (nonmem) return res.json({ type: "nonmember", email, status: "nonmember" });
+
+          res.status(404).json({ error: "User not found" });
       });
-    } else {
-      db.get("SELECT NonMemID FROM NonMember WHERE Email = ?", [userEmail], (err, nonMember) => {
-        if (err) {
-          console.error("Error fetching non-member info:", err);
-          return res.status(500).json({ error: "Database error" });
-        }
-        if (!nonMember) {
-          return res.status(404).json({ error: "User not found in Member or NonMember table." });
-        }
-        const query = `
-            SELECT 
-              c.StartDate AS startDate, 
-              c.EndDate AS endDate, 
-              c.StartTime AS startTime, 
-              c.EndTime AS endTime, 
-              c.RoomNumber AS location, 
-              c.ClassName AS name, 
-              c.ClassID AS id,
-              c.Frequency AS frequency
-            FROM Register r
-            JOIN Class c ON r.ClassID = c.ClassID
-            WHERE r.NonMemID = ?
-        `;
-        db.all(query, [nonMember.NonMemID], (err, rows) => {
-          if (err) {
-            console.error("Error fetching registrations:", err);
-            return res.status(500).json({ error: "Database error" });
-          }
-          res.json(rows);
-        });
+  });
+});
+
+// Update status (members only)
+app.patch("/api/users/:email/status", authenticateToken, (req, res) => {
+  const email = req.params.email.trim().toLowerCase();
+  const { status } = req.body;
+
+  if (!["active", "inactive"].includes(status)) {
+      return res.status(400).json({ error: "Invalid status" });
+  }
+
+  const newStatus = status.charAt(0).toUpperCase() + status.slice(1);
+  db.run("UPDATE Member SET Status = ?, StatusDate = CURRENT_DATE WHERE LOWER(Email) = LOWER(?)",
+      [newStatus, email],
+      function (err) {
+          if (err) return res.status(500).json({ error: "Failed to update status" });
+          if (this.changes === 0) return res.status(404).json({ error: "User not found or not a member" });
+          res.json({ message: `Status updated to ${newStatus}` });
+      }
+  );
+});
+
+// Get all registrations for a user (member or nonmember)
+app.get("/api/users/:email/registrations", authenticateToken, (req, res) => {
+  const email = req.params.email.trim().toLowerCase();
+
+  db.get("SELECT MemID FROM Member WHERE LOWER(Email) = ?", [email], (err, member) => {
+      if (err) return res.status(500).json({ error: "Database error" });
+      if (member) {
+          return db.all(`
+              SELECT 
+                  c.ClassID AS id,
+                  c.ClassName AS name,
+                  c.StartDate, c.EndDate,
+                  c.StartTime, c.EndTime,
+                  c.RoomNumber AS location
+              FROM Register r
+              JOIN Class c ON r.ClassID = c.ClassID
+              WHERE r.MemID = ?
+          `, [member.MemID], (err, rows) => {
+              if (err) return res.status(500).json({ error: "Failed to fetch member classes" });
+              return res.json(rows);
+          });
+      }
+
+      // Try nonmember
+      db.get("SELECT NonMemID FROM NonMember WHERE LOWER(Email) = ?", [email], (err, nonmem) => {
+          if (err || !nonmem) return res.status(404).json({ error: "User not found" });
+
+          db.all(`
+              SELECT 
+                  c.ClassID AS id,
+                  c.ClassName AS name,
+                  c.StartDate, c.EndDate,
+                  c.StartTime, c.EndTime,
+                  c.RoomNumber AS location
+              FROM Register r
+              JOIN Class c ON r.ClassID = c.ClassID
+              WHERE r.NonMemID = ?
+          `, [nonmem.NonMemID], (err, rows) => {
+              if (err) return res.status(500).json({ error: "Failed to fetch nonmember classes" });
+              return res.json(rows);
+          });
       });
-    }
+  });
+});
+
+// Assign class to MEMBER
+app.post("/api/users/:email/register/:classId", authenticateToken, (req, res) => {
+  const email = req.params.email.trim().toLowerCase();
+  const classId = req.params.classId;
+
+  db.get("SELECT MemID FROM Member WHERE LOWER(Email) = ?", [email], (err, member) => {
+      if (err || !member) return res.status(404).json({ error: "Member not found" });
+
+      const sql = "INSERT INTO Register (MemID, ClassID) VALUES (?, ?)";
+      db.run(sql, [member.MemID, classId], function (err) {
+          if (err) return res.status(500).json({ error: "Failed to assign class" });
+          res.json({ message: "Class assigned", classId: parseInt(classId) });
+      });
+  });
+});
+
+// Unregister class for MEMBER
+app.delete("/api/users/:email/register/:classId", authenticateToken, (req, res) => {
+  const email = req.params.email.trim().toLowerCase();
+  const classId = req.params.classId;
+
+  db.get("SELECT MemID FROM Member WHERE LOWER(Email) = ?", [email], (err, member) => {
+      if (err || !member) return res.status(404).json({ error: "Member not found" });
+
+      const sql = "DELETE FROM Register WHERE MemID = ? AND ClassID = ?";
+      db.run(sql, [member.MemID, classId], function (err) {
+          if (err) return res.status(500).json({ error: "Unregistration failed" });
+          res.json({ message: "Class unregistered" });
+      });
   });
 });
 
@@ -588,6 +639,27 @@ app.post("/api/register", authenticateToken, (req, res) => {
       });
     });
   });
+});
+
+// 9) Soft Delete a Class (Visible to Employees Only)
+
+app.delete("/api/programs/:id", authenticateToken, (req, res) => {
+  const classId = req.params.id;
+  const userEmail = req.user.email;
+  //  Removed AcctType check — assumed frontend controls this
+  const sql = "UPDATE Class SET Status = 'Inactive' WHERE ClassID = ?";
+  db.run(sql, [classId], function (err) {
+      if (err) {
+        console.error("❌ Error updating class status:", err.message);
+             return res.status(500).json({ error: "Failed to mark class inactive" });
+         }
+
+         if (this.changes === 0) {
+          return res.status(404).json({ error: "Class not found" });
+      }
+
+      res.json({ message: "✅ Class marked as inactive." });
+    });
 });
 
 /* ----------------------------------------
