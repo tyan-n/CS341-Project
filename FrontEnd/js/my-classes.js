@@ -112,11 +112,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     return d;
   }
 
-  // Expand registrations into occurrences based on Frequency.
+  // Expand registrations into occurrences based on frequency.
   function expandRegistrations(registrations) {
     const expanded = [];
     registrations.forEach(reg => {
-      const freq = parseInt(reg.Frequency) || 1;
+      // Use 'frequency' from the server, not Frequency.
+      const freq = parseInt(reg.frequency) || 1;
       for (let i = 0; i < freq; i++) {
         const occurrence = { ...reg };
         const occDate = getOccurrenceDate(reg.startDate, i);
