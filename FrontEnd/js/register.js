@@ -18,7 +18,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                 <p><strong>Time:</strong> ${program.startTime} - ${program.endTime}</p>
                 <p><strong>Location:</strong> ${program.location}</p>
                 <p><strong>Price:</strong> $${program.priceMember} (Member) / $${program.priceNonMember} (Non-Member)</p>
-                <p><strong>Capacity:</strong> ${program.capacity}</p>
+                <p><strong>Spots Left:</strong> ${program.capacity}</p>
             `;
         } else {
             programDetails.innerHTML = "<p>Program not found.</p>";

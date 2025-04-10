@@ -11,7 +11,15 @@ document.addEventListener("DOMContentLoaded", async function () {
 
         if (activePrograms.length > 0) {
             programList.innerHTML = activePrograms.map(program => {
-                let buttonsHTML = `<button class="register-btn ymca-button" data-id="${program.id}">Register</button>`;
+                // Check capacity to determine if register button should be disabled.
+                let registerButton;
+                if (parseInt(program.capacity) === 0) {
+                    registerButton = `<button class="register-btn ymca-button" data-id="${program.id}" disabled style="background-color: grey;">Register</button>`;
+                } else {
+                    registerButton = `<button class="register-btn ymca-button" data-id="${program.id}">Register</button>`;
+                }
+
+                let buttonsHTML = registerButton;
                 if (role === "staff") {
                     buttonsHTML += `<button class="delete-btn ymca-button" data-id="${program.id}">Delete Class</button>`;
                 }

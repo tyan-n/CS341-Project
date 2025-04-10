@@ -250,7 +250,7 @@ app.get("/api/programs", (req, res) => {
         RoomNumber AS location,
         MemPrice AS priceMember,
         NonMemPrice AS priceNonMember,
-        MIN(CurrCapacity) AS capacity,
+        MaxCapacity - CurrCapacity AS capacity,
         Frequency AS frequency,
         Status AS status
       FROM Class
@@ -324,7 +324,7 @@ app.get("/api/programs/:id", (req, res) => {
         StartTime AS startTime, 
         EndTime AS endTime,
         RoomNumber AS location, 
-        CurrCapacity AS capacity, 
+        MaxCapacity - CurrCapacity AS capacity, 
         MemPrice AS priceMember, 
         NonMemPrice AS priceNonMember
       FROM Class
@@ -431,7 +431,16 @@ app.delete("/api/registrations/:id", authenticateToken, (req, res) => {
         if (this.changes === 0) {
           return res.status(404).json({ error: "Registration not found" });
         }
+
+        db.run("UPDATE Class SET CurrCapacity = CurrCapacity + 1 WHERE ClassID = ?",
+          [registrationClassId],
+          function (err) {
+            if (err) {
+              console.error("Error updating CurrCapacity:", err);
+              return res.status(500).json({ error: "Registration saved, but failed to update capacity." });
+            }
         res.json({ message: "Unregistered successfully!" });
+          });
       });
     } else {
       db.get("SELECT NonMemID FROM NonMember WHERE Email = ?", [userEmail], (err, nonMember) => {
@@ -450,7 +459,16 @@ app.delete("/api/registrations/:id", authenticateToken, (req, res) => {
           if (this.changes === 0) {
             return res.status(404).json({ error: "Registration not found" });
           }
-          res.json({ message: "Unregistered successfully!" });
+
+          db.run("UPDATE Class SET CurrCapacity = CurrCapacity + 1 WHERE ClassID = ?",
+            [registrationClassId],
+            function (err) {
+              if (err) {
+                console.error("Error updating CurrCapacity:", err);
+                return res.status(500).json({ error: "Registration saved, but failed to update capacity." });
+              }
+            res.json({ message: "Unregistered successfully!" });
+            });
         });
       });
     }
