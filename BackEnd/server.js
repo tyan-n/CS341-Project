@@ -89,10 +89,8 @@ app.post("/api/login", (req, res) => {
 ---------------------------------------- */
 app.post("/api/signup", async (req, res) => {
   console.log("Signup request body:", req.body);
-  const {
-    username, password, membershipType, fname, lname, mname,
-    birthday, street, houseNumber, city, state, zipCode, phone, fee
-  } = req.body;
+  const { username, password, membershipType, fname, lname, mname,
+          birthday, street, houseNumber, city, state, zipCode, phone, fee } = req.body;
   if (!username || !password || !membershipType) {
     return res.status(400).json({ error: "Username, password, and membership type are required." });
   }
@@ -431,7 +429,6 @@ app.delete("/api/registrations/:id", authenticateToken, (req, res) => {
         if (this.changes === 0) {
           return res.status(404).json({ error: "Registration not found" });
         }
-
         db.run("UPDATE Class SET CurrCapacity = CurrCapacity - 1 WHERE ClassID = ?",
           [registrationClassId],
           function (err) {
@@ -439,8 +436,9 @@ app.delete("/api/registrations/:id", authenticateToken, (req, res) => {
               console.error("Error updating CurrCapacity:", err);
               return res.status(500).json({ error: "Registration saved, but failed to update capacity." });
             }
-        res.json({ message: "Unregistered successfully!" });
-          });
+            res.json({ message: "Unregistered successfully!" });
+          }
+        );
       });
     } else {
       db.get("SELECT NonMemID FROM NonMember WHERE Email = ?", [userEmail], (err, nonMember) => {
@@ -459,7 +457,6 @@ app.delete("/api/registrations/:id", authenticateToken, (req, res) => {
           if (this.changes === 0) {
             return res.status(404).json({ error: "Registration not found" });
           }
-
           db.run("UPDATE Class SET CurrCapacity = CurrCapacity - 1 WHERE ClassID = ?",
             [registrationClassId],
             function (err) {
@@ -467,8 +464,9 @@ app.delete("/api/registrations/:id", authenticateToken, (req, res) => {
                 console.error("Error updating CurrCapacity:", err);
                 return res.status(500).json({ error: "Registration saved, but failed to update capacity." });
               }
-            res.json({ message: "Unregistered successfully!" });
-            });
+              res.json({ message: "Unregistered successfully!" });
+            }
+          );
         });
       });
     }
@@ -478,14 +476,32 @@ app.delete("/api/registrations/:id", authenticateToken, (req, res) => {
 /* ----------------------------------------
    Register for a Program (Authenticated)
 ---------------------------------------- */
+// Helper to get a value from an object using a lowercase key or capitalized version.
+function getVal(obj, key) {
+  return obj[key] !== undefined ? obj[key] : obj[key.charAt(0).toUpperCase() + key.slice(1)];
+}
+
 function isTimeConflict(newClass, existingClass) {
-  const newEndDate = newClass.EndDate || newClass.StartDate;
-  const existEndDate = existingClass.EndDate || existingClass.StartDate;
-  const newStart = new Date(`${newClass.StartDate}T${newClass.StartTime}`);
-  const newEnd = new Date(`${newEndDate}T${newClass.EndTime}`);
-  const existStart = new Date(`${existingClass.StartDate}T${existingClass.StartTime}`);
-  const existEnd = new Date(`${existEndDate}T${existingClass.EndTime}`);
-  return newStart < existEnd && existStart < newEnd && newStart.getDay() == existStart.getDay();
+  // Get start and end dates/times using consistent naming.
+  const newStartDate = getVal(newClass, "startDate");
+  const newStartTime = getVal(newClass, "startTime");
+  const newEndDate = getVal(newClass, "endDate") || newStartDate;
+  const newEndTime = getVal(newClass, "endTime");
+
+  const existStartDate = getVal(existingClass, "startDate");
+  const existStartTime = getVal(existingClass, "startTime");
+  const existEndDate = getVal(existingClass, "endDate") || existStartDate;
+  const existEndTime = getVal(existingClass, "endTime");
+
+  const newStart = new Date(`${newStartDate}T${newStartTime}`);
+  const newEnd = new Date(`${newEndDate}T${newEndTime}`);
+  const existStart = new Date(`${existStartDate}T${existStartTime}`);
+  const existEnd = new Date(`${existEndDate}T${existEndTime}`);
+
+  // Check conflict only if they occur on the same day.
+  if (newStart.getDay() !== existStart.getDay()) return false;
+
+  return newStart < existEnd && existStart < newEnd;
 }
 
 app.post("/api/register", authenticateToken, (req, res) => {
@@ -525,13 +541,14 @@ app.post("/api/register", authenticateToken, (req, res) => {
           userId = nonMember.NonMemID;
           idField = "NonMemID";
         }
+        // Exclude the class being registered from conflict check.
         const registrationsQuery = `
           SELECT c.StartDate, c.EndDate, c.StartTime, c.EndTime, c.RoomNumber 
           FROM Register r
           JOIN Class c ON r.ClassID = c.ClassID
-          WHERE r.${idField} = ?
+          WHERE r.${idField} = ? AND c.ClassID != ?
         `;
-        db.all(registrationsQuery, [userId], (err, registrations) => {
+        db.all(registrationsQuery, [userId, programId], (err, registrations) => {
           if (err) {
             console.error("Error fetching registrations:", err);
             return res.status(500).json({ error: "Error fetching registrations" });
