@@ -6,6 +6,43 @@
   <title>YMCA Family Account</title>
   <link rel="stylesheet" href="../css/styles.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    /* Your existing styles remain unchanged */
+    
+    /* Modal Styles for notifications and confirmations */
+    .modal {
+      display: none; 
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+    }
+    .modal-content {
+      background-color: #fff;
+      margin: 15% auto;
+      padding: 20px;
+      border-radius: 8px;
+      width: 80%;
+      max-width: 300px;
+      text-align: center;
+      position: relative;
+    }
+    .close-button {
+      position: absolute;
+      top: 5px;
+      right: 10px;
+      font-size: 24px;
+      font-weight: bold;
+      cursor: pointer;
+      color: #aaa;
+    }
+    .close-button:hover {
+      color: #000;
+    }
+  </style>
 </head>
 <body>
   <script src="../js/navbar.js" defer></script>
@@ -20,34 +57,41 @@
       <button id="create-family-btn" class="success-button">Create Family Account</button>
     </div>
 
-  <!-- Dashboard Section -->
-  <div id="family-dashboard" style="display: none;">
-    
-    <!-- Members List -->
-    <div id="family-members">
-      <h3>👨‍👩‍👧 Family Members</h3>
-      <p>(Includes full name and email)</p>
-      <ul id="member-list" class="member-list">
-        <!-- Members will be injected here -->
-      </ul>
-    </div>
+    <!-- Dashboard Section -->
+    <div id="family-dashboard" style="display: none;">
+      <!-- Members List -->
+      <div id="family-members">
+        <h3>👨‍👩‍👧 Family Members</h3>
+        <p>(Includes full name and email)</p>
+        <ul id="member-list" class="member-list">
+          <!-- Members will be injected here -->
+        </ul>
+      </div>
 
-    <!-- Add Member -->
-    <div id="add-member-section" style="display: none;">
-      <h3>➕ Add Family Member</h3>
-      <form id="add-member-form">
-        <input type="text" id="new-member-username" placeholder="Enter member's email" required />
-        <button type="submit" class="success-button">Add Member</button>
-      </form>
-    </div>
+      <!-- Add Member -->
+      <div id="add-member-section" style="display: none;">
+        <h3>➕ Add Family Member</h3>
+        <form id="add-member-form">
+          <input type="text" id="new-member-username" placeholder="Enter member's email" required />
+          <button type="submit" class="success-button">Add Member</button>
+        </form>
+      </div>
 
-    <!-- Delete Family -->
-    <div id="delete-family-section" style="display: none;">
-      <h3>❌ Delete Entire Family</h3>
-      <button id="delete-family-btn" class="danger-button">Delete Family</button>
+      <!-- Delete Family -->
+      <div id="delete-family-section" style="display: none;">
+        <h3>❌ Delete Entire Family</h3>
+        <button id="delete-family-btn" class="danger-button">Delete Family</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal Container for error/confirmation messages -->
+  <div id="modal" class="modal">
+    <div class="modal-content">
+      <span id="modal-close" class="close-button">&times;</span>
+      <p id="modal-message"></p>
     </div>
   </div>
-  </main>
 
   <script src="../js/family-account.js" defer></script>
 </body>

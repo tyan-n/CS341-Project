@@ -15,9 +15,22 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.error("Family check error:", err);
   }
 
-  // Continue as before if not in family
   const btn = document.getElementById("create-family-btn");
-  const msg = document.getElementById("create-family-message");
+
+  // Modal elements
+  const modal = document.getElementById("modal");
+  const modalMessage = document.getElementById("modal-message");
+  const modalClose = document.getElementById("modal-close");
+
+  // Helper functions to show/hide modal
+  function showModal(message) {
+    modalMessage.innerText = message;
+    modal.style.display = "block";
+  }
+  function hideModal() {
+    modal.style.display = "none";
+  }
+  modalClose.addEventListener("click", hideModal);
 
   btn.addEventListener("click", async () => {
     try {
@@ -28,20 +41,18 @@ document.addEventListener("DOMContentLoaded", async () => {
           Authorization: `Bearer ${token}`
         }
       });
-
       const data = await res.json();
-
       if (res.ok) {
-        msg.textContent = "🎉 Family account created!";
+        showModal("🎉 Family account created!");
         setTimeout(() => {
           window.location.href = "family-account.html";
         }, 1000);
       } else {
-        msg.textContent = data.error || "Failed to create family account.";
+        showModal(data.error || "Failed to create family account.");
       }
     } catch (err) {
       console.error("Error creating family:", err);
-      msg.textContent = "Server error. Please try again.";
+      showModal("Server error. Please try again.");
     }
   });
 });

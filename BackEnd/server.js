@@ -594,25 +594,31 @@ app.post("/api/register", authenticateToken, (req, res) => {
     FAMILY ACCOUNT ROUTES
  ---------------------------------------- */
  
- // 1. Create a new family account
- app.post("/api/family/create", authenticateToken, (req, res) => {
+// 1. Create a new family account
+app.post("/api/family/create", authenticateToken, (req, res) => {
   const email = req.user.email;
 
   db.get("SELECT MemID FROM Member WHERE Email = ?", [email], (err, member) => {
-      if (err || !member) return res.status(500).json({ error: "Member not found" });
+    if (err || !member) {
+      return res.status(500).json({ modal: true, error: "Member not found" });
+    }
 
-      const memID = member.MemID;
-      const familyName = `${email.split("@")[0]}'s Family`;
+    const memID = member.MemID;
+    const familyName = `${email.split("@")[0]}'s Family`;
 
-      db.run("INSERT INTO FamilyAccount (FamilyName, FamilyOwnerID) VALUES (?, ?)", [familyName, memID], function (err) {
-          if (err) return res.status(500).json({ error: "Failed to create family" });
+    db.run("INSERT INTO FamilyAccount (FamilyName, FamilyOwnerID) VALUES (?, ?)", [familyName, memID], function (err) {
+      if (err) {
+        return res.status(500).json({ modal: true, error: "Failed to create family" });
+      }
 
-          const familyID = this.lastID;
-          db.run("INSERT INTO FamilyMember (FamilyID, MemID) VALUES (?, ?)", [familyID, memID], (err) => {
-              if (err) return res.status(500).json({ error: "Failed to join family" });
-              res.json({ message: "Family created", familyID });
-          });
+      const familyID = this.lastID;
+      db.run("INSERT INTO FamilyMember (FamilyID, MemID) VALUES (?, ?)", [familyID, memID], (err) => {
+        if (err) {
+          return res.status(500).json({ modal: true, error: "Failed to join family" });
+        }
+        res.json({ modal: true, message: "Family created", familyID });
       });
+    });
   });
 });
 
