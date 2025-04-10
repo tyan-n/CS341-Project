@@ -209,7 +209,7 @@ app.post("/api/programs", (req, res) => {
       [
         programData.name,
         programData.description,
-        programData.frequency, // frequency is stored here for later use on calendar
+        programData.frequency, // Frequency is stored here for calendar use
         programData.location,
         programData.startDate,
         programData.endDate,
@@ -242,17 +242,17 @@ app.get("/api/programs", (req, res) => {
       SELECT 
         MIN(ClassID) AS id,
         ClassName AS name,
-        Description,
+        Description AS description,
         MIN(StartDate) AS startDate,
         MAX(EndDate) AS endDate,
-        StartTime,
-        EndTime,
+        StartTime AS startTime,
+        EndTime AS endTime,
         RoomNumber AS location,
         MemPrice AS priceMember,
         NonMemPrice AS priceNonMember,
         MIN(CurrCapacity) AS capacity,
-        Frequency,
-        Status
+        Frequency AS frequency,
+        Status AS status
       FROM Class
       WHERE Status != 'Inactive'
       GROUP BY ClassName, Description, StartTime, EndTime, RoomNumber, MemPrice, NonMemPrice, Frequency, Status
@@ -279,7 +279,7 @@ app.get("/api/programs/inactive", (req, res) => {
         StartTime AS startTime,
         EndTime AS endTime,
         RoomNumber AS location,
-        Status
+        Status AS status
       FROM Class
       WHERE Status = 'Inactive'
   `;
@@ -345,34 +345,6 @@ app.get("/api/programs/:id", (req, res) => {
 });
 
 /* ----------------------------------------
-   Delete a Class (for staff)
-   This endpoint marks the class inactive and removes its registrations.
----------------------------------------- */
-app.delete("/api/programs/:id", authenticateToken, (req, res) => {
-  const classId = req.params.id;
-  const userEmail = req.user.email;
-  console.log("🔐 DELETE requested by:", userEmail);
-  const deactivateClass = "UPDATE Class SET Status = 'Inactive' WHERE ClassID = ?";
-  const removeRegistrations = "DELETE FROM Register WHERE ClassID = ?";
-  db.run(deactivateClass, [classId], function (err) {
-    if (err) {
-      console.error("❌ Error updating class status:", err.message);
-      return res.status(500).json({ error: "Failed to mark class inactive" });
-    }
-    if (this.changes === 0) {
-      return res.status(404).json({ error: "Class not found" });
-    }
-    db.run(removeRegistrations, [classId], function (err) {
-      if (err) {
-        console.error("❌ Failed to remove registrations:", err.message);
-        return res.status(500).json({ error: "Class status updated but failed to unregister users." });
-      }
-      res.json({ message: "✅ Class marked as inactive and users unregistered." });
-    });
-  });
-});
-
-/* ----------------------------------------
    Get Registrations for the Authenticated User
 ---------------------------------------- */
 app.get("/api/registrations", authenticateToken, (req, res) => {
@@ -392,7 +364,7 @@ app.get("/api/registrations", authenticateToken, (req, res) => {
             c.RoomNumber AS location, 
             c.ClassName AS name, 
             c.ClassID AS id,
-            c.Frequency AS Frequency
+            c.Frequency AS frequency
           FROM Register r
           JOIN Class c ON r.ClassID = c.ClassID
           WHERE r.MemID = ?
@@ -422,7 +394,7 @@ app.get("/api/registrations", authenticateToken, (req, res) => {
               c.RoomNumber AS location, 
               c.ClassName AS name, 
               c.ClassID AS id,
-              c.Frequency AS Frequency
+              c.Frequency AS frequency
             FROM Register r
             JOIN Class c ON r.ClassID = c.ClassID
             WHERE r.NonMemID = ?
@@ -508,7 +480,7 @@ app.post("/api/register", authenticateToken, (req, res) => {
     }
     db.get("SELECT NonMemID FROM NonMember WHERE Email = ?", [userEmail], (err, nonMember) => {
       if (err) {
-        console.error("Error searching NonMember table:", err);
+        console.error("Error searching NonMemID:", err);
         return res.status(500).json({ error: "Database error" });
       }
       if (!member && !nonMember) {
