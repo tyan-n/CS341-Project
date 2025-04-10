@@ -116,7 +116,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   function expandRegistrations(registrations) {
     const expanded = [];
     registrations.forEach(reg => {
-      // Use 'frequency' from the server, not Frequency.
+      // Use 'frequency' from the server.
       const freq = parseInt(reg.frequency) || 1;
       for (let i = 0; i < freq; i++) {
         const occurrence = { ...reg };
@@ -144,7 +144,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     expandedRegistrations.forEach(reg => {
       const occDate = new Date(reg.occurrenceDate);
       const occISO = occDate.toISOString().split('T')[0];
-      // Only render if occDate falls between currentWeekStart and currentWeekStart+6 days.
+      // Only render if occDate falls between currentWeekStart and currentWeekStart + 6 days.
       const weekEnd = new Date(currentWeekStart);
       weekEnd.setDate(weekEnd.getDate() + 6);
       if (occDate < currentWeekStart || occDate > weekEnd) return;
@@ -157,17 +157,20 @@ document.addEventListener("DOMContentLoaded", async () => {
       const offsetMinutes = startH * 60 + startM;
       // Adjust offset: grid starts at 7 AM.
       const topPx = offsetMinutes - (7 * 60);
-      // Calculate the height based on duration.
+      
+      // Calculate the duration based on start and end times.
       const [endH, endM] = reg.endTime.split(":").map(Number);
       const durationMinutes = (endH * 60 + endM) - (startH * 60 + startM);
-      const heightPx = durationMinutes;
+      // Use the computed duration, with a minimum height of 40px.
+      const computedHeight = Math.max(durationMinutes, 40);
 
       const entry = document.createElement("div");
       entry.className = "class-entry";
       entry.style.top = topPx + "px";
-      entry.style.height = heightPx + "px";
+      entry.style.height = computedHeight + "px";
+      entry.style.whiteSpace = "normal"; // allow text wrapping
+      entry.style.overflow = "hidden";
 
-      // Format occurrence date for display.
       const formattedDate = occDate.toLocaleDateString();
 
       entry.innerHTML = `
@@ -178,6 +181,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         <em>${reg.location}</em><br>
         <button class="unregister-btn" data-id="${reg.id}" data-occurrence="${occISO}">Unregister</button>
       `;
+
+      dayCol.appendChild(entry);
+
+      // After appending, measure the content height, and if it's greater than the computed height,
+      // update the entry height dynamically.
+      const contentHeight = entry.scrollHeight;
+      const finalHeight = Math.max(computedHeight, contentHeight);
+      entry.style.height = finalHeight + "px";
 
       entry.querySelector(".unregister-btn").addEventListener("click", async function () {
         if (!confirm("Are you sure you want to unregister from this class occurrence?")) return;
@@ -199,8 +210,6 @@ document.addEventListener("DOMContentLoaded", async () => {
           alert("Error unregistering from class.");
         }
       });
-
-      dayCol.appendChild(entry);
     });
   }
 

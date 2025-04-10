@@ -432,7 +432,7 @@ app.delete("/api/registrations/:id", authenticateToken, (req, res) => {
           return res.status(404).json({ error: "Registration not found" });
         }
 
-        db.run("UPDATE Class SET CurrCapacity = CurrCapacity + 1 WHERE ClassID = ?",
+        db.run("UPDATE Class SET CurrCapacity = CurrCapacity - 1 WHERE ClassID = ?",
           [registrationClassId],
           function (err) {
             if (err) {
@@ -460,7 +460,7 @@ app.delete("/api/registrations/:id", authenticateToken, (req, res) => {
             return res.status(404).json({ error: "Registration not found" });
           }
 
-          db.run("UPDATE Class SET CurrCapacity = CurrCapacity + 1 WHERE ClassID = ?",
+          db.run("UPDATE Class SET CurrCapacity = CurrCapacity - 1 WHERE ClassID = ?",
             [registrationClassId],
             function (err) {
               if (err) {
@@ -485,7 +485,7 @@ function isTimeConflict(newClass, existingClass) {
   const newEnd = new Date(`${newEndDate}T${newClass.EndTime}`);
   const existStart = new Date(`${existingClass.StartDate}T${existingClass.StartTime}`);
   const existEnd = new Date(`${existEndDate}T${existingClass.EndTime}`);
-  return newStart < existEnd && existStart < newEnd && newStart.getDay() === existStart.getDay();
+  return newStart < existEnd && existStart < newEnd && newStart.getDay() == existStart.getDay();
 }
 
 app.post("/api/register", authenticateToken, (req, res) => {
