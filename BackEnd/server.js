@@ -641,6 +641,75 @@ app.post("/api/register", authenticateToken, (req, res) => {
   });
 });
 
+/* ----------------------------------------
+    Get Registrations for the Authenticated User
+ ---------------------------------------- */
+ app.get("/api/registrations", authenticateToken, (req, res) => {
+  const userEmail = req.user.email;
+  db.get("SELECT MemID FROM Member WHERE Email = ?", [userEmail], (err, member) => {
+    if (err) {
+      console.error("Error fetching member info:", err);
+      return res.status(500).json({ error: "Database error" });
+    }
+    if (member) {
+      const query = `
+          SELECT 
+            c.StartDate AS startDate, 
+            c.EndDate AS endDate, 
+            c.StartTime AS startTime, 
+            c.EndTime AS endTime, 
+            c.RoomNumber AS location, 
+            c.ClassName AS name, 
+            c.ClassID AS id,
+            c.Frequency AS frequency
+          FROM Register r
+          JOIN Class c ON r.ClassID = c.ClassID
+          WHERE r.MemID = ?
+      `;
+      db.all(query, [member.MemID], (err, rows) => {
+        if (err) {
+          console.error("Error fetching registrations:", err);
+          return res.status(500).json({ error: "Database error" });
+        }
+        res.json(rows);
+      });
+    } else {
+      db.get("SELECT NonMemID FROM NonMember WHERE Email = ?", [userEmail], (err, nonMember) => {
+        if (err) {
+          console.error("Error fetching non-member info:", err);
+          return res.status(500).json({ error: "Database error" });
+        }
+        if (!nonMember) {
+          return res.status(404).json({ error: "User not found in Member or NonMember table." });
+        }
+        const query = `
+            SELECT 
+              c.StartDate AS startDate, 
+              c.EndDate AS endDate, 
+              c.StartTime AS startTime, 
+              c.EndTime AS endTime, 
+              c.RoomNumber AS location, 
+              c.ClassName AS name, 
+              c.ClassID AS id,
+              c.Frequency AS frequency
+            FROM Register r
+            JOIN Class c ON r.ClassID = c.ClassID
+            WHERE r.NonMemID = ?
+        `;
+        db.all(query, [nonMember.NonMemID], (err, rows) => {
+          if (err) {
+            console.error("Error fetching registrations:", err);
+            return res.status(500).json({ error: "Database error" });
+          }
+          res.json(rows);
+        });
+      });
+    }
+  });
+});
+
+
+
 // 9) Soft Delete a Class (Visible to Employees Only)
 
 app.delete("/api/programs/:id", authenticateToken, (req, res) => {
