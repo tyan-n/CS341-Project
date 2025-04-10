@@ -11,7 +11,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   const prevWeekBtn = document.getElementById("prev-week");
   const nextWeekBtn = document.getElementById("next-week");
 
-  // Render the time column on the left
+  // Helper: Returns a "YYYY-MM-DD" string for a given Date in local time.
+  function getLocalDateString(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
+  // Render the time column on the left.
   function renderTimeColumn() {
     const timeColumn = document.getElementById("time-column");
     timeColumn.innerHTML = "";
@@ -33,7 +41,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     return d;
   }
 
-  // Format a date range.
+  // Format a week range string.
   function formatWeekRange(weekStart) {
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekStart.getDate() + 6);
@@ -49,8 +57,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       dayDate.setDate(dayDate.getDate() + i);
       const dayCol = document.createElement("div");
       dayCol.className = "day-column";
-      // Use ISO string for consistency.
-      dayCol.setAttribute("data-date", dayDate.toISOString().split('T')[0]);
+      // Use our local date string helper.
+      dayCol.setAttribute("data-date", getLocalDateString(dayDate));
       const header = document.createElement("h3");
       header.textContent = dayDate.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
       dayCol.appendChild(header);
@@ -97,14 +105,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
-  // Use local noon for date conversion.
+  // Instead of forcing noon, create the occurrence date using the local date constructor.
   function getOccurrenceDate(baseDateStr, weekOffset) {
+    // Split the base date string and use new Date(year, monthIndex, day)
     const dateOnly = baseDateStr.split("T")[0];
     const parts = dateOnly.split("-");
     const year = Number(parts[0]);
     const month = Number(parts[1]) - 1;
     const day = Number(parts[2]);
-    const d = new Date(year, month, day, 12, 0, 0);
+    const d = new Date(year, month, day);
     d.setDate(d.getDate() + weekOffset * 7);
     return d;
   }
@@ -116,11 +125,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       for (let i = 0; i < freq; i++) {
         const occurrence = { ...reg };
         const occDate = getOccurrenceDate(reg.startDate, i);
-        occurrence.occurrenceDate = occDate.toISOString().split('T')[0];
+        occurrence.occurrenceDate = getLocalDateString(occDate);
         expanded.push(occurrence);
       }
     });
-    // Log the expanded registrations so you can see all computed occurrence dates.
     console.log("Expanded registrations:", expanded);
     return expanded;
   }
@@ -137,23 +145,22 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     expandedRegistrations.forEach(reg => {
       const occDate = new Date(reg.occurrenceDate);
-      const occISO = occDate.toISOString().split('T')[0];
+      const occStr = getLocalDateString(occDate);
+      // Only render if occDate is within the current week.
       const weekEnd = new Date(currentWeekStart);
       weekEnd.setDate(weekEnd.getDate() + 6);
       if (occDate < currentWeekStart || occDate > weekEnd) return;
 
-      const dayCol = document.querySelector(`.day-column[data-date="${occISO}"]`);
+      const dayCol = document.querySelector(`.day-column[data-date="${occStr}"]`);
       if (!dayCol) {
-        console.warn("No day column found for date:", occISO);
+        console.warn("No day column for:", occStr);
         return;
       }
 
-      // Calculate vertical offset based on startTime.
       const [startH, startM] = reg.startTime.split(":").map(Number);
       const offsetMinutes = startH * 60 + startM;
       const topPx = offsetMinutes - (7 * 60);
-
-      // Calculate duration from startTime to endTime.
+      
       const [endH, endM] = reg.endTime.split(":").map(Number);
       const durationMinutes = (endH * 60 + endM) - (startH * 60 + startM);
       const computedHeight = Math.max(durationMinutes, 40);
@@ -165,16 +172,16 @@ document.addEventListener("DOMContentLoaded", async () => {
       entry.style.whiteSpace = "normal";
       entry.style.overflow = "hidden";
 
+      // Removed the date display because the column indicates the date.
       entry.innerHTML = `
         <strong>${reg.name}</strong><br>
         ${reg.startTime} – ${reg.endTime}<br>
         Class Number: ${reg.id}<br>
         <em>${reg.location}</em><br>
-        <button class="unregister-btn" data-id="${reg.id}" data-occurrence="${occISO}">Unregister</button>
+        <button class="unregister-btn" data-id="${reg.id}" data-occurrence="${occStr}">Unregister</button>
       `;
 
       dayCol.appendChild(entry);
-
       const contentHeight = entry.scrollHeight;
       const finalHeight = Math.max(computedHeight, contentHeight);
       entry.style.height = finalHeight + "px";
