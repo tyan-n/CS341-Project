@@ -28,6 +28,32 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentUser = "";
   let userClasses = [];
 
+
+  function getDateOfISOWeek(week, year) {
+    const simple = new Date(year, 0, 1 + (week - 1) * 7);
+    const dow = simple.getDay();
+    const ISOweekStart = new Date(simple);
+    if (dow <= 4) ISOweekStart.setDate(simple.getDate() - simple.getDay() + 1);
+    else ISOweekStart.setDate(simple.getDate() + 8 - simple.getDay());
+    return ISOweekStart;
+  }
+  
+  function getWeekRangeFromInput(weekValue) {
+    const [year, weekStr] = weekValue.split("-W");
+    const week = parseInt(weekStr);
+    const start = getDateOfISOWeek(week, parseInt(year));
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    return { start, end };
+  }
+  
+  let selectedWeekRange = null;
+  
+  document.getElementById("week-selector").addEventListener("change", e => {
+    selectedWeekRange = getWeekRangeFromInput(e.target.value);
+    renderSchedule(); // dynamically refresh view
+  });  
+
   form.addEventListener("submit", async e => {
     e.preventDefault();
     currentUser = usernameInput.value.trim();
@@ -128,7 +154,10 @@ document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll(".class-entry").forEach(e => e.remove());
 
     userClasses.forEach(cls => {
-      const day = getDayName(cls.StartDate);
+      const classDate = new Date(cls.StartDate);
+      if (selectedWeekRange && (classDate < selectedWeekRange.start || classDate > selectedWeekRange.end)) return;
+          const day = getDayName(cls.StartDate);
+          
       const col = document.querySelector(`.day-column[data-day="${day}"]`);
       if (!col) return;
 
