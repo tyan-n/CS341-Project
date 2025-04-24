@@ -11,12 +11,18 @@ document.addEventListener("DOMContentLoaded", async () => {
   const prevWeekBtn = document.getElementById("prev-week");
   const nextWeekBtn = document.getElementById("next-week");
 
-  // Helper: Returns a "YYYY-MM-DD" string for a given Date in local time.
+  // Helper: Returns "YYYY-MM-DD" for a given Date in local time.
   function getLocalDateString(date) {
-    const year = date.getFullYear();
+    const year  = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
+    const day   = String(date.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
+  }
+
+  // NEW: Parse "YYYY-MM-DD" into a local-midnight Date (avoids TZ shifts)
+  function parseLocalDate(dateStr) {
+    const [y, m, d] = dateStr.split("-").map(Number);
+    return new Date(y, m - 1, d);
   }
 
   // Render the time column on the left.
@@ -26,9 +32,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     for (let hour = 7; hour <= 22; hour++) {
       const label = document.createElement("div");
       label.className = "time-label";
-      label.textContent = hour <= 12 ? hour + " AM" : (hour === 12 ? "12 PM" : (hour - 12) + " PM");
-      const topPx = (hour * 60) - (7 * 60);
-      label.style.top = topPx + "px";
+      label.textContent = hour <= 12
+        ? hour + " AM"
+        : hour === 12
+          ? "12 PM"
+          : (hour - 12) + " PM";
+      label.style.top = ((hour * 60) - (7 * 60)) + "px";
       timeColumn.appendChild(label);
     }
   }
@@ -37,7 +46,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   function getWeekStart(date) {
     const d = new Date(date);
     d.setDate(d.getDate() - d.getDay());
-    d.setHours(0, 0, 0, 0);
+    d.setHours(0,0,0,0);
     return d;
   }
 
@@ -45,7 +54,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   function formatWeekRange(weekStart) {
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekStart.getDate() + 6);
-    return `${weekStart.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })} - ${weekEnd.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}`;
+    return `${weekStart.toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' })}`
+         + ` - ${weekEnd.toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' })}`;
   }
 
   let currentWeekStart = getWeekStart(new Date());
@@ -59,7 +69,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       dayCol.className = "day-column";
       dayCol.setAttribute("data-date", getLocalDateString(dayDate));
       const header = document.createElement("h3");
-      header.textContent = dayDate.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+      header.textContent = dayDate.toLocaleDateString(undefined, { weekday:"short", month:"short", day:"numeric" });
       dayCol.appendChild(header);
       calendarGrid.appendChild(dayCol);
     }
@@ -70,23 +80,23 @@ document.addEventListener("DOMContentLoaded", async () => {
   renderCalendarGrid(currentWeekStart);
 
   prevWeekBtn.addEventListener("click", () => {
-    const newWeekStart = new Date(currentWeekStart);
-    newWeekStart.setDate(newWeekStart.getDate() - 7);
-    const thisWeekStart = getWeekStart(new Date());
-    if (newWeekStart < thisWeekStart) return;
-    currentWeekStart = newWeekStart;
+    const newStart = new Date(currentWeekStart);
+    newStart.setDate(newStart.getDate() - 7);
+    if (newStart < getWeekStart(new Date())) return;
+    currentWeekStart = newStart;
     renderCalendarGrid(currentWeekStart);
     renderClasses();
   });
 
   nextWeekBtn.addEventListener("click", () => {
-    const newWeekStart = new Date(currentWeekStart);
-    newWeekStart.setDate(newWeekStart.getDate() + 7);
-    currentWeekStart = newWeekStart;
+    const newStart = new Date(currentWeekStart);
+    newStart.setDate(newStart.getDate() + 7);
+    currentWeekStart = newStart;
     renderCalendarGrid(currentWeekStart);
     renderClasses();
   });
 
+  // Fetch user registrations
   let registrations = [];
   try {
     const res = await fetch("http://localhost:5000/api/registrations", {
@@ -103,136 +113,128 @@ document.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
-  // Create occurrence date from local date parts.
+  // Build each occurrence date at local noon to avoid TZ shifts
   function getOccurrenceDate(baseDateStr, weekOffset) {
-    const dateOnly = baseDateStr.split("T")[0];
-    const parts = dateOnly.split("-");
-    const year = Number(parts[0]);
-    const month = Number(parts[1]) - 1;
-    const day = Number(parts[2]);
-    const d = new Date(year, month, day);
-    d.setDate(d.getDate() + weekOffset * 7);
-    return d;
+    const [y,m,d] = baseDateStr.split("T")[0].split("-").map(Number);
+    const dt = new Date(y, m-1, d, 12, 0, 0);
+    dt.setDate(dt.getDate() + weekOffset * 7);
+    return dt;
   }
 
-  function expandRegistrations(registrations) {
-    const expanded = [];
-    registrations.forEach(reg => {
+  function expandRegistrations(regs) {
+    const arr = [];
+    regs.forEach(reg => {
       const freq = parseInt(reg.frequency) || 1;
       for (let i = 0; i < freq; i++) {
-        const occurrence = { ...reg };
-        const occDate = getOccurrenceDate(reg.startDate, i);
-        occurrence.occurrenceDate = getLocalDateString(occDate);
-        expanded.push(occurrence);
+        const occ = { ...reg };
+        const dt = getOccurrenceDate(reg.startDate, i);
+        occ.occurrenceDate = getLocalDateString(dt);
+        arr.push(occ);
       }
     });
-    return expanded;
+    return arr;
   }
-
   const expandedRegistrations = expandRegistrations(registrations);
 
-  // Modal for notifications.
-  function showNotificationModal(message) {
-    const modal = document.getElementById("notification-modal");
-    const modalMessage = document.getElementById("notification-modal-message");
-    modalMessage.innerText = message;
-    modal.style.display = "block";
+  // Modal helpers…
+  function showNotificationModal(msg) {
+    const m = document.getElementById("notification-modal");
+    document.getElementById("notification-modal-message").innerText = msg;
+    m.style.display = "block";
   }
   function closeNotificationModal() {
     document.getElementById("notification-modal").style.display = "none";
   }
-  document.getElementById("notification-modal-close").addEventListener("click", closeNotificationModal);
+  document.getElementById("notification-modal-close")
+          .addEventListener("click", closeNotificationModal);
 
-  // Confirm modal for unregistering.
-  function showConfirmModal(message, onConfirm) {
-    const modal = document.getElementById("confirm-modal");
-    const modalMessage = document.getElementById("confirm-modal-message");
-    const confirmBtn = document.getElementById("confirm-modal-confirm");
-    const cancelBtn = document.getElementById("confirm-modal-cancel");
-    modalMessage.innerText = message;
-    modal.style.display = "block";
-    // Remove previous event listeners by cloning the node.
-    const newConfirmBtn = confirmBtn.cloneNode(true);
-    confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
-    const newCancelBtn = cancelBtn.cloneNode(true);
-    cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
-    newConfirmBtn.addEventListener("click", () => {
-      onConfirm();
-      modal.style.display = "none";
-    });
-    newCancelBtn.addEventListener("click", () => {
-      modal.style.display = "none";
-    });
+  function showConfirmModal(msg, onConfirm) {
+    const m = document.getElementById("confirm-modal");
+    document.getElementById("confirm-modal-message").innerText = msg;
+    m.style.display = "block";
+
+    // replace listeners
+    const oldC = document.getElementById("confirm-modal-confirm");
+    const newC = oldC.cloneNode(true);
+    oldC.parentNode.replaceChild(newC, oldC);
+
+    const oldX = document.getElementById("confirm-modal-cancel");
+    const newX = oldX.cloneNode(true);
+    oldX.parentNode.replaceChild(newX, oldX);
+
+    newC.addEventListener("click", () => { onConfirm(); m.style.display="none"; });
+    newX.addEventListener("click", () => m.style.display="none");
   }
 
   function renderClasses() {
-    const dayCols = document.querySelectorAll(".day-column");
-    dayCols.forEach(col => {
-      while (col.childNodes.length > 1) {
-        col.removeChild(col.lastChild);
-      }
+    // clear existing
+    document.querySelectorAll(".day-column").forEach(col => {
+      while (col.childNodes.length > 1) col.removeChild(col.lastChild);
     });
 
     expandedRegistrations.forEach(reg => {
-      const occDate = new Date(reg.occurrenceDate);
-      const occStr = getLocalDateString(occDate);
+      // --- FIXED: use parseLocalDate ---
+      const occDate = parseLocalDate(reg.occurrenceDate);
+      const occStr  = getLocalDateString(occDate);
+
+      // --- FIXED: correct weekEnd derivation ---
       const weekEnd = new Date(currentWeekStart);
       weekEnd.setDate(weekEnd.getDate() + 6);
-      if (occDate < currentWeekStart || occDate > weekEnd) return;
 
+      if (occDate < currentWeekStart || occDate > weekEnd) return;
       const dayCol = document.querySelector(`.day-column[data-date="${occStr}"]`);
       if (!dayCol) return;
 
-      const [startH, startM] = reg.startTime.split(":").map(Number);
-      const offsetMinutes = startH * 60 + startM;
-      const topPx = offsetMinutes - (7 * 60);
+      const [h1,m1] = reg.startTime.split(":").map(Number);
+      const [h2,m2] = reg.endTime.split(":").map(Number);
 
-      const [endH, endM] = reg.endTime.split(":").map(Number);
-      const durationMinutes = (endH * 60 + endM) - (startH * 60 + startM);
-      const computedHeight = Math.max(durationMinutes, 40);
+      const topPx     = (h1*60 + m1) - (7*60);
+      const duration  = (h2*60 + m2) - (h1*60 + m1);
+      const heightPx  = Math.max(duration, 40);
 
       const entry = document.createElement("div");
       entry.className = "class-entry";
-      entry.style.top = topPx + "px";
-      entry.style.height = computedHeight + "px";
+      entry.style.top    = topPx + "px";
+      entry.style.height = heightPx + "px";
       entry.style.whiteSpace = "normal";
-      entry.style.overflow = "hidden";
-
-      // Removed date display from the box.
+      entry.style.overflow    = "hidden";
       entry.innerHTML = `
         <strong>${reg.name}</strong><br>
         ${reg.startTime} – ${reg.endTime}<br>
         Class Number: ${reg.id}<br>
         <em>${reg.location}</em><br>
-        <button class="unregister-btn" data-id="${reg.id}" data-occurrence="${occStr}">Unregister</button>
+        <button class="unregister-btn" data-id="${reg.id}">Unregister</button>
       `;
 
       dayCol.appendChild(entry);
-      const contentHeight = entry.scrollHeight;
-      const finalHeight = Math.max(computedHeight, contentHeight);
-      entry.style.height = finalHeight + "px";
+      // adjust for content overflow
+      const contH = entry.scrollHeight;
+      entry.style.height = Math.max(heightPx, contH) + "px";
 
-      entry.querySelector(".unregister-btn").addEventListener("click", function () {
-        showConfirmModal("Are you sure you want to unregister from this class occurrence?", async () => {
-          try {
-            const deleteRes = await fetch(`http://localhost:5000/api/registrations/${reg.id}`, {
-              method: "DELETE",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`
+      entry.querySelector(".unregister-btn").addEventListener("click", () => {
+        showConfirmModal(
+          "Are you sure you want to unregister from this class occurrence?",
+          async () => {
+            try {
+              const resp = await fetch(`http://localhost:5000/api/registrations/${reg.id}`, {
+                method: "DELETE",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`
+                }
+              });
+              if (resp.ok) {
+                showNotificationModal("Unregistered successfully!");
+                entry.remove();
+              } else {
+                showNotificationModal("Failed to unregister.");
               }
-            });
-            if (deleteRes.ok) {
-              showNotificationModal("Unregistered successfully!");
-              entry.remove();
-            } else {
-              showNotificationModal("Failed to unregister.");
+            } catch (e) {
+              console.error("Unregister error:", e);
+              showNotificationModal("Error unregistering from class.");
             }
-          } catch (err) {
-            console.error("Unregister error:", err);
-            showNotificationModal("Error unregistering from class.");
           }
-        });
+        );
       });
     });
   }
