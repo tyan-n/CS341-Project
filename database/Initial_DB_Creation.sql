@@ -136,13 +136,22 @@ CREATE TABLE Dependent (
 );
 
 CREATE TABLE Cancelled (
-    ClassID INTEGER NOT NULL,
-    MemID INTEGER NOT NULL,
+    ClassID       INTEGER NOT NULL,
+    MemID         INTEGER,
+    NonMemID      INTEGER,
     DateCancelled DATE NOT NULL,
-    Notified INTEGER NOT NULL CHECK(Notified IN (0, 1)), -- 1 = notified, 0 = not
-    PRIMARY KEY (ClassID, MemID, DateCancelled),
+    Notified      INTEGER NOT NULL CHECK (Notified IN (0, 1)),
+    
+    PRIMARY KEY (ClassID, DateCancelled, MemID, NonMemID),
+    
     FOREIGN KEY (ClassID) REFERENCES Class(ClassID),
-    FOREIGN KEY (MemID) REFERENCES Member(MemID)
+    FOREIGN KEY (MemID) REFERENCES Member(MemID),
+    FOREIGN KEY (NonMemID) REFERENCES NonMember(NonMemID),
+
+    CHECK (
+        (MemID IS NOT NULL AND NonMemID IS NULL) OR
+        (MemID IS NULL AND NonMemID IS NOT NULL)
+    )
 );
 
 CREATE TABLE ClassDays (
