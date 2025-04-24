@@ -550,7 +550,7 @@ function isTimeConflict(newClass, existingClass) {
   const existEnd = new Date(`${existEndDate}T${existEndTime}`);
 
   // Check conflict only if they occur on the same day.
-  if (newStart.getDay() !== existStart.getDay()) return false;
+  if (newStart.toISOString().split('T')[0] !== existStart.toISOString().split('T')[0]) return false;
 
   return newStart < existEnd && existStart < newEnd;
 }
@@ -657,7 +657,7 @@ app.post("/api/register", authenticateToken, (req, res) => {
  ---------------------------------------- */
  app.get("/api/registrations", authenticateToken, (req, res) => {
   const userEmail = req.user.email;
-  db.get("SELECT MemID FROM Member WHERE Email = ?", [userEmail], (err, member) => {
+  db.get("SELECT MemID FROM Member WHERE LOWER(Email) = LOWER(?)", [userEmail], (err, member) => {
     if (err) {
       console.error("Error fetching member info:", err);
       return res.status(500).json({ error: "Database error" });
@@ -685,7 +685,7 @@ app.post("/api/register", authenticateToken, (req, res) => {
         res.json(rows);
       });
     } else {
-      db.get("SELECT NonMemID FROM NonMember WHERE Email = ?", [userEmail], (err, nonMember) => {
+      db.get("SELECT NonMemID FROM NonMember WHERE LOWER(Email) = LOWER(?)", [userEmail], (err, nonMember) => {
         if (err) {
           console.error("Error fetching non-member info:", err);
           return res.status(500).json({ error: "Database error" });
