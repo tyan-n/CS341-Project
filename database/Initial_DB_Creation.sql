@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS Room (
     RoomType 	 TEXT NOT NULL CHECK (RoomType IN ('Gym', 'Pool', 'Weight', 'Cardio', 'Studio', 'Spin', 'Multi-Purpose')) -- Room type
 );
 
-CREATE TABLE IF NOT EXISTS Class (
+CREATE TABLE Class (
     ClassID       INTEGER PRIMARY KEY AUTOINCREMENT,
     EmpID         INTEGER NOT NULL,
     ClassName     TEXT NOT NULL,
@@ -66,14 +66,12 @@ CREATE TABLE IF NOT EXISTS Class (
     EndDate       DATE NOT NULL,
     StartTime     TIME NOT NULL,
     EndTime       TIME NOT NULL,
-    Frequency     INTEGER NOT NULL CHECK (Frequency > 0), -- Number of occurrences
     Description   TEXT,
     CurrCapacity  INTEGER DEFAULT 0,
-    MemPrice      REAL NOT NULL, -- set automatically based on ClassSpec
-    NonMemPrice   REAL NOT NULL, -- set automatically
+    MemPrice      REAL NOT NULL,
+    NonMemPrice   REAL NOT NULL,
     ClassType     TEXT NOT NULL CHECK (ClassType IN ('Yoga', 'Fitness', 'Aquatics', 'Family', 'Sports')),
-    AgeGroup      TEXT NOT NULL CHECK (AgeGroup IN ('Child', 'Teen', 'Adult', 'Senior', 'All ages')),
-    Status        TEXT CHECK (Status IN ('Open Spots', 'Fully Booked')) DEFAULT 'Open Spots',
+    Status        TEXT CHECK (Status IN ('Open Spots', 'Fully Booked', 'Inactive')) DEFAULT 'Open Spots',
     FOREIGN KEY (EmpID) REFERENCES Employee(EmpID),
     FOREIGN KEY (RoomNumber) REFERENCES Room(RoomNumber)
 );
@@ -104,6 +102,52 @@ CREATE TABLE IF NOT EXISTS Teach ( --relationship between employee and class
     PRIMARY KEY (ClassID, EmpID),
     FOREIGN KEY (ClassID) REFERENCES Class(ClassID),
     FOREIGN KEY (EmpID) REFERENCES Employee(EmpID)
+);
+
+CREATE TABLE FamilyAccount (
+    FamilyID INTEGER PRIMARY KEY AUTOINCREMENT,
+    FamilyName TEXT NOT NULL,
+    FamilyOwnerID INTEGER NOT NULL,
+    FOREIGN KEY (FamilyOwnerID) REFERENCES Member(MemID)
+);
+
+CREATE TABLE FamilyMember (
+    FamilyID INTEGER NOT NULL,
+    MemID INTEGER,
+    DepID INTEGER,
+    PRIMARY KEY (FamilyID, MemID, DepID),
+    FOREIGN KEY (FamilyID) REFERENCES FamilyAccount(FamilyID),
+    FOREIGN KEY (MemID) REFERENCES Member(MemID),
+    FOREIGN KEY (DepID) REFERENCES Dependent(DepID)
+);
+
+CREATE TABLE Dependent (
+    DepID INTEGER PRIMARY KEY AUTOINCREMENT,
+    FName TEXT NOT NULL,
+    LName TEXT NOT NULL,
+    MName TEXT,
+    Birthday DATE,
+    ParentMemID INTEGER NOT NULL,
+    FamilyID INTEGER NOT NULL,
+    FOREIGN KEY (ParentMemID) REFERENCES Member(MemID),
+    FOREIGN KEY (FamilyID) REFERENCES FamilyAccount(FamilyID)
+);
+
+CREATE TABLE Cancelled (
+    ClassID INTEGER NOT NULL,
+    MemID INTEGER NOT NULL,
+    DateCancelled DATE NOT NULL,
+    Notified INTEGER NOT NULL CHECK(Notified IN (0, 1)), -- 1 = notified, 0 = not
+    PRIMARY KEY (ClassID, MemID, DateCancelled),
+    FOREIGN KEY (ClassID) REFERENCES Class(ClassID),
+    FOREIGN KEY (MemID) REFERENCES Member(MemID)
+);
+
+CREATE TABLE ClassDays (
+    ClassID INTEGER,
+    DayOfWeek TEXT CHECK(DayOfWeek IN ('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday')),
+    PRIMARY KEY (ClassID, DayOfWeek),
+    FOREIGN KEY (ClassID) REFERENCES Class(ClassID)
 );
 
 CREATE TRIGGER update_capacity_after_reg
