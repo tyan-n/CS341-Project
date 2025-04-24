@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS Employee (
     Wage         REAL NOT NULL CHECK (Wage >= 0),
     Email        TEXT NOT NULL UNIQUE,
     StartDate    DATE NOT NULL DEFAULT CURRENT_DATE,
+    EndDate      DATE;
     Role         TEXT NOT NULL CHECK (Role IN ('Admin', 'Receptionist', 'Trainer', 'Janitor')),
     FOREIGN KEY (MemID) REFERENCES Member(MemID)
 );
@@ -46,7 +47,8 @@ CREATE TABLE IF NOT EXISTS NonMember (
     MName 		 TEXT,
     Birthday 	 DATE NOT NULL,
     Email 		 TEXT NOT NULL UNIQUE,
-    PhoneNumber  TEXT NOT NULL CHECK (PhoneNumber GLOB '[0-9()-]*')
+    PhoneNumber  TEXT NOT NULL CHECK (PhoneNumber GLOB '[0-9()-]*'),
+    Status    	 TEXT NOT NULL CHECK (Status IN ('Active', 'Inactive', 'Transferred')) DEFAULT 'Active'
 );
 
 CREATE TABLE IF NOT EXISTS Room (
