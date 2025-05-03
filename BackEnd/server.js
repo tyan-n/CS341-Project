@@ -149,11 +149,12 @@ app.post("/api/signup", async (req, res) => {
 });
 
 /* ----------------------------------------
-   3) Add Class to Database (with conflict check)
-   Frequency is stored with the record but does not cause duplicate rows.
+   3) Add Class to Database (with ClassDays)
+   Frequency removed — Days are stored in ClassDays table
 ---------------------------------------- */
 app.post("/api/programs", (req, res) => {
   const programData = req.body;
+
   if (
     !programData.name ||
     !programData.description ||
@@ -162,133 +163,158 @@ app.post("/api/programs", (req, res) => {
     !programData.startTime ||
     !programData.capacity ||
     !programData.priceMember ||
-    !programData.priceNonMember
+    !programData.priceNonMember ||
+    !Array.isArray(programData.days) || programData.days.length === 0
   ) {
-    return res.status(400).json({ error: "Missing required fields" });
+    return res.status(400).json({ error: "Missing required fields or no days selected" });
   }
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const classStartDate = new Date(programData.startDate);
   classStartDate.setHours(0, 0, 0, 0);
+
   if (classStartDate < today) {
     return res.status(400).json({ error: "Cannot set up a class before today's date." });
   }
+
   const startDateTime = new Date(`${programData.startDate}T${programData.startTime}`);
   const endDateTime = new Date(`${programData.endDate}T${programData.endTime}`);
+  const now = new Date();
+
   if (endDateTime <= startDateTime) {
     return res.status(400).json({ error: "End date and time must be after start date and time." });
   }
-  const now = new Date();
+
   if (classStartDate.getTime() === today.getTime() && startDateTime < now) {
     return res.status(400).json({ error: "For classes scheduled today, the start time must be after the current time." });
   }
-  // Perform a conflict check for the first occurrence.
+
   const conflictQuery = `
     SELECT * FROM Class 
     WHERE RoomNumber = ? AND StartDate = ? AND StartTime = ? AND Status != 'Inactive'
   `;
+
   db.get(conflictQuery, [programData.location, programData.startDate, programData.startTime], (err, conflict) => {
     if (err) {
-      console.error("Error during conflict check:", err);
+      console.error("❌ Conflict check failed:", err);
       return res.status(500).json({ error: "Database error during conflict check" });
     }
+
     if (conflict) {
       return res.status(400).json({ error: "Scheduling conflict: Another class is scheduled at this time in the chosen room." });
     }
-    // Insert one record with the Frequency field.
-    const insertSql = `
+
+    const insertClassSql = `
       INSERT INTO Class (
-        ClassName, Description, Frequency, RoomNumber, StartDate, EndDate,
-        StartTime, EndTime, MaxCapacity, MemPrice, NonMemPrice, AgeGroup, EmpID, ClassType
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        EmpID, ClassName, RoomNumber, StartDate, EndDate,
+        StartTime, EndTime, Description, CurrCapacity,
+        MemPrice, NonMemPrice, ClassType, Status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)
     `;
-    db.run(
-      insertSql,
-      [
-        programData.name,
-        programData.description,
-        programData.frequency, // Frequency is stored here for calendar use
-        programData.location,
-        programData.startDate,
-        programData.endDate,
-        programData.startTime,
-        programData.endTime,
-        programData.capacity,
-        programData.priceMember,
-        programData.priceNonMember,
-        programData.ageGroup,
-        1, // Hard-coded EmpID; adjust as needed.
-        programData.classType
-      ],
-      function (err) {
-        if (err) {
-          console.error("Error inserting class:", err);
-          return res.status(500).json({ error: "Error adding class to database" });
-        }
-        res.json({ message: "Class added successfully", id: this.lastID });
+
+    const values = [
+      programData.empId || 1, // default fallback
+      programData.name,
+      programData.location,
+      programData.startDate,
+      programData.endDate,
+      programData.startTime,
+      programData.endTime,
+      programData.description,
+      programData.priceMember,
+      programData.priceNonMember,
+      programData.classType,
+      programData.status || "Open Spots"
+    ];
+
+    db.run(insertClassSql, values, function (err) {
+      if (err) {
+        console.error("❌ Error inserting class:", err);
+        return res.status(500).json({ error: "Error adding class to database" });
       }
-    );
+
+      const classId = this.lastID;
+
+      const insertDayStmt = db.prepare(`INSERT INTO ClassDays (ClassID, DayOfWeek) VALUES (?, ?)`);
+      programData.days.forEach(day => {
+        insertDayStmt.run(classId, day);
+      });
+
+      insertDayStmt.finalize(err => {
+        if (err) {
+          console.error("❌ Failed to assign class days:", err);
+          return res.status(500).json({ error: "Class created, but failed to assign days." });
+        }
+
+        res.json({ message: "Class created successfully", id: classId });
+      });
+    });
   });
 });
 
 /* ----------------------------------------
    Get All Programs (Active Only) for Browsing
-   This endpoint groups classes so each series shows only once.
+   Includes Days, Capacity, Prices
 ---------------------------------------- */
-app.get("/api/programs", (req, res) => {
+app.get("/api/programs", authenticateToken, (req, res) => {
   const sql = `
-      SELECT 
-        MIN(ClassID) AS id,
-        ClassName AS name,
-        Description AS description,
-        MIN(StartDate) AS startDate,
-        MAX(EndDate) AS endDate,
-        StartTime AS startTime,
-        EndTime AS endTime,
-        RoomNumber AS location,
-        MemPrice AS priceMember,
-        NonMemPrice AS priceNonMember,
-        MaxCapacity - CurrCapacity AS capacity,
-        Frequency AS frequency,
-        Status AS status
-      FROM Class
-      WHERE Status != 'Inactive'
-      GROUP BY ClassName, Description, StartTime, EndTime, RoomNumber, MemPrice, NonMemPrice, Frequency, Status
+    SELECT 
+      c.ClassID AS id,
+      c.ClassName AS name,
+      c.Description AS description,
+      c.StartDate AS startDate,
+      c.EndDate AS endDate,
+      c.StartTime AS startTime,
+      c.EndTime AS endTime,
+      c.RoomNumber AS location,
+      r.MaxCapacity - c.CurrCapacity AS capacity,
+      c.MemPrice AS priceMember,
+      c.NonMemPrice AS priceNonMember,
+      c.Status AS status,
+      GROUP_CONCAT(cd.DayOfWeek) AS days
+    FROM Class c
+    JOIN Room r ON c.RoomNumber = r.RoomNumber
+    LEFT JOIN ClassDays cd ON c.ClassID = cd.ClassID
+    WHERE c.Status != 'Inactive'
+    GROUP BY c.ClassID
   `;
+
   db.all(sql, [], (err, rows) => {
     if (err) {
-      console.error("Failed to fetch classes:", err);
-      return res.status(500).json({ error: "Could not load classes" });
+      console.error("❌ Failed to fetch programs:", err);
+      return res.status(500).json({ error: "Failed to fetch programs" });
     }
     res.json(rows);
   });
 });
 
 /* ----------------------------------------
-   Get Inactive Classes
+   Get Inactive Classes (Secured)
 ---------------------------------------- */
-app.get("/api/programs/inactive", (req, res) => {
+app.get("/api/programs/inactive", authenticateToken, (req, res) => {
   const sql = `
-      SELECT 
-        ClassID AS id,
-        ClassName AS name,
-        StartDate AS startDate,
-        EndDate AS endDate,
-        StartTime AS startTime,
-        EndTime AS endTime,
-        RoomNumber AS location,
-        Status AS status
-      FROM Class
-      WHERE Status = 'Inactive'
+    SELECT 
+      ClassID AS id,
+      ClassName AS name,
+      StartDate AS startDate,
+      EndDate AS endDate,
+      StartTime AS startTime,
+      EndTime AS endTime,
+      RoomNumber AS location,
+      Status AS status
+    FROM Class
+    WHERE Status = 'Inactive'
   `;
   db.all(sql, [], (err, rows) => {
     if (err) {
-      console.error("Failed to fetch inactive classes:", err);
+      console.error("❌ Failed to fetch inactive classes:", err);
       return res.status(500).json({ error: "Could not load inactive classes" });
     }
     res.json(rows);
   });
 });
+
 
 /* ----------------------------------------
    Reactivate a Class
@@ -309,25 +335,28 @@ app.patch("/api/programs/:id/reactivate", authenticateToken, (req, res) => {
 });
 
 /* ----------------------------------------
-   Get Program by ID
+   Get Program by ID (JOIN Room for MaxCapacity)
 ---------------------------------------- */
 app.get("/api/programs/:id", (req, res) => {
   const programId = req.params.id;
   console.log("🔍 Fetching program with ID:", programId);
+
   const sql = `
-      SELECT 
-        ClassID AS id,
-        ClassName AS name, 
-        Description AS description, 
-        StartTime AS startTime, 
-        EndTime AS endTime,
-        RoomNumber AS location, 
-        MaxCapacity - CurrCapacity AS capacity, 
-        MemPrice AS priceMember, 
-        NonMemPrice AS priceNonMember
-      FROM Class
-      WHERE ClassID = ?
+    SELECT 
+      Class.ClassID AS id,
+      Class.ClassName AS name,
+      Class.Description AS description,
+      Class.StartTime AS startTime,
+      Class.EndTime AS endTime,
+      Class.RoomNumber AS location,
+      Room.MaxCapacity - Class.CurrCapacity AS capacity,
+      Class.MemPrice AS priceMember,
+      Class.NonMemPrice AS priceNonMember
+    FROM Class
+    JOIN Room ON Class.RoomNumber = Room.RoomNumber
+    WHERE Class.ClassID = ?
   `;
+
   db.get(sql, [programId], (err, program) => {
     if (err) {
       console.error("❌ Error fetching program:", err);
@@ -337,29 +366,28 @@ app.get("/api/programs/:id", (req, res) => {
       console.log("❌ Program not found in database");
       return res.status(404).json({ error: "Program not found" });
     }
-    console.log("✅ Sending program:", program);
     res.json(program);
   });
 });
 
 /* ----------------------------------------
     MANAGE USERS & CLASS ASSIGNMENT (MEMBER + NONMEMBER)
- ---------------------------------------- */
- 
- // Get user profile (status or nonmember flag)
- app.get("/api/users/:email/profile", authenticateToken, (req, res) => {
+---------------------------------------- */
+
+// Get user profile (status or nonmember flag)
+app.get("/api/users/:email/profile", authenticateToken, (req, res) => {
   const email = req.params.email.trim().toLowerCase();
 
   db.get("SELECT Status FROM Member WHERE LOWER(Email) = ?", [email], (err, member) => {
+    if (err) return res.status(500).json({ error: "Database error" });
+    if (member) return res.json({ type: "member", email, status: member.Status.toLowerCase() });
+
+    db.get("SELECT * FROM NonMember WHERE LOWER(Email) = ?", [email], (err, nonmem) => {
       if (err) return res.status(500).json({ error: "Database error" });
-      if (member) return res.json({ type: "member", email, status: member.Status.toLowerCase() });
+      if (nonmem) return res.json({ type: "nonmember", email, status: "nonmember" });
 
-      db.get("SELECT * FROM NonMember WHERE LOWER(Email) = ?", [email], (err, nonmem) => {
-          if (err) return res.status(500).json({ error: "Database error" });
-          if (nonmem) return res.json({ type: "nonmember", email, status: "nonmember" });
-
-          res.status(404).json({ error: "User not found" });
-      });
+      res.status(404).json({ error: "User not found" });
+    });
   });
 });
 
@@ -369,96 +397,136 @@ app.patch("/api/users/:email/status", authenticateToken, (req, res) => {
   const { status } = req.body;
 
   if (!["active", "inactive"].includes(status)) {
-      return res.status(400).json({ error: "Invalid status" });
+    return res.status(400).json({ error: "Invalid status" });
   }
 
   const newStatus = status.charAt(0).toUpperCase() + status.slice(1);
   db.run("UPDATE Member SET Status = ?, StatusDate = CURRENT_DATE WHERE LOWER(Email) = LOWER(?)",
-      [newStatus, email],
-      function (err) {
-          if (err) return res.status(500).json({ error: "Failed to update status" });
-          if (this.changes === 0) return res.status(404).json({ error: "User not found or not a member" });
-          res.json({ message: `Status updated to ${newStatus}` });
-      }
+    [newStatus, email],
+    function (err) {
+      if (err) return res.status(500).json({ error: "Failed to update status" });
+      if (this.changes === 0) return res.status(404).json({ error: "User not found or not a member" });
+      res.json({ message: `Status updated to ${newStatus}` });
+    }
   );
 });
 
-// Get all registrations for a user (member or nonmember)
+// Get all registrations for a user (member or nonmember) including recurring days
 app.get("/api/users/:email/registrations", authenticateToken, (req, res) => {
   const email = req.params.email.trim().toLowerCase();
 
   db.get("SELECT MemID FROM Member WHERE LOWER(Email) = ?", [email], (err, member) => {
-      if (err) return res.status(500).json({ error: "Database error" });
-      if (member) {
-          return db.all(`
-              SELECT 
-                  c.ClassID AS id,
-                  c.ClassName AS name,
-                  c.StartDate, c.EndDate,
-                  c.StartTime, c.EndTime,
-                  c.RoomNumber AS location
-              FROM Register r
-              JOIN Class c ON r.ClassID = c.ClassID
-              WHERE r.MemID = ?
-          `, [member.MemID], (err, rows) => {
-              if (err) return res.status(500).json({ error: "Failed to fetch member classes" });
-              return res.json(rows);
-          });
-      }
+    if (err) return res.status(500).json({ error: "Database error" });
 
-      // Try nonmember
-      db.get("SELECT NonMemID FROM NonMember WHERE LOWER(Email) = ?", [email], (err, nonmem) => {
-          if (err || !nonmem) return res.status(404).json({ error: "User not found" });
-
-          db.all(`
-              SELECT 
-                  c.ClassID AS id,
-                  c.ClassName AS name,
-                  c.StartDate, c.EndDate,
-                  c.StartTime, c.EndTime,
-                  c.RoomNumber AS location
-              FROM Register r
-              JOIN Class c ON r.ClassID = c.ClassID
-              WHERE r.NonMemID = ?
-          `, [nonmem.NonMemID], (err, rows) => {
-              if (err) return res.status(500).json({ error: "Failed to fetch nonmember classes" });
-              return res.json(rows);
-          });
+    if (member) {
+      return db.all(`
+        SELECT 
+          c.ClassID AS id,
+          c.ClassName AS name,
+          c.StartDate, c.EndDate,
+          c.StartTime, c.EndTime,
+          c.RoomNumber AS location,
+          GROUP_CONCAT(cd.DayOfWeek) AS days
+        FROM Register r
+        JOIN Class c ON r.ClassID = c.ClassID
+        LEFT JOIN ClassDays cd ON c.ClassID = cd.ClassID
+        WHERE r.MemID = ?
+        GROUP BY c.ClassID
+      `, [member.MemID], (err, rows) => {
+        if (err) return res.status(500).json({ error: "Failed to fetch member classes" });
+        return res.json(rows);
       });
+    }
+
+    db.get("SELECT NonMemID FROM NonMember WHERE LOWER(Email) = ?", [email], (err, nonmem) => {
+      if (err || !nonmem) return res.status(404).json({ error: "User not found" });
+
+      db.all(`
+        SELECT 
+          c.ClassID AS id,
+          c.ClassName AS name,
+          c.StartDate, c.EndDate,
+          c.StartTime, c.EndTime,
+          c.RoomNumber AS location,
+          GROUP_CONCAT(cd.DayOfWeek) AS days
+        FROM Register r
+        JOIN Class c ON r.ClassID = c.ClassID
+        LEFT JOIN ClassDays cd ON c.ClassID = cd.ClassID
+        WHERE r.NonMemID = ?
+        GROUP BY c.ClassID
+      `, [nonmem.NonMemID], (err, rows) => {
+        if (err) return res.status(500).json({ error: "Failed to fetch nonmember classes" });
+        return res.json(rows);
+      });
+    });
   });
 });
 
-// Assign class to MEMBER
+
+// Assign class to MEMBER or NONMEMBER
 app.post("/api/users/:email/register/:classId", authenticateToken, (req, res) => {
   const email = req.params.email.trim().toLowerCase();
   const classId = req.params.classId;
 
   db.get("SELECT MemID FROM Member WHERE LOWER(Email) = ?", [email], (err, member) => {
-      if (err || !member) return res.status(404).json({ error: "Member not found" });
+    if (err) return res.status(500).json({ error: "Database error" });
 
+    if (member) {
       const sql = "INSERT INTO Register (MemID, ClassID) VALUES (?, ?)";
-      db.run(sql, [member.MemID, classId], function (err) {
-          if (err) return res.status(500).json({ error: "Failed to assign class" });
-          res.json({ message: "Class assigned", classId: parseInt(classId) });
+      return db.run(sql, [member.MemID, classId], function (err) {
+        if (err) return res.status(500).json({ error: "Failed to assign class" });
+
+        db.run("UPDATE Class SET CurrCapacity = CurrCapacity + 1 WHERE ClassID = ?", [classId]);
+        res.json({ message: "Class assigned", classId: parseInt(classId) });
       });
+    }
+
+    db.get("SELECT NonMemID FROM NonMember WHERE LOWER(Email) = ?", [email], (err, nonmem) => {
+      if (err || !nonmem) return res.status(404).json({ error: "User not found" });
+
+      const sql = "INSERT INTO Register (NonMemID, ClassID) VALUES (?, ?)";
+      db.run(sql, [nonmem.NonMemID, classId], function (err) {
+        if (err) return res.status(500).json({ error: "Failed to assign class" });
+
+        db.run("UPDATE Class SET CurrCapacity = CurrCapacity + 1 WHERE ClassID = ?", [classId]);
+        res.json({ message: "Class assigned", classId: parseInt(classId) });
+      });
+    });
   });
 });
 
-// Unregister class for MEMBER
+// Unregister class for MEMBER or NONMEMBER
 app.delete("/api/users/:email/register/:classId", authenticateToken, (req, res) => {
   const email = req.params.email.trim().toLowerCase();
   const classId = req.params.classId;
 
   db.get("SELECT MemID FROM Member WHERE LOWER(Email) = ?", [email], (err, member) => {
-      if (err || !member) return res.status(404).json({ error: "Member not found" });
+    if (err) return res.status(500).json({ error: "Database error" });
 
+    if (member) {
       const sql = "DELETE FROM Register WHERE MemID = ? AND ClassID = ?";
-      db.run(sql, [member.MemID, classId], function (err) {
-          if (err) return res.status(500).json({ error: "Unregistration failed" });
-          res.json({ message: "Class unregistered" });
+      return db.run(sql, [member.MemID, classId], function (err) {
+        if (err) return res.status(500).json({ error: "Unregistration failed" });
+
+        db.run("UPDATE Class SET CurrCapacity = CurrCapacity - 1 WHERE ClassID = ?", [classId]);
+        res.json({ message: "Class unregistered" });
       });
+    }
+
+    db.get("SELECT NonMemID FROM NonMember WHERE LOWER(Email) = ?", [email], (err, nonmem) => {
+      if (err || !nonmem) return res.status(404).json({ error: "User not found" });
+
+      const sql = "DELETE FROM Register WHERE NonMemID = ? AND ClassID = ?";
+      db.run(sql, [nonmem.NonMemID, classId], function (err) {
+        if (err) return res.status(500).json({ error: "Unregistration failed" });
+
+        db.run("UPDATE Class SET CurrCapacity = CurrCapacity - 1 WHERE ClassID = ?", [classId]);
+        res.json({ message: "Class unregistered" });
+      });
+    });
   });
 });
+
 
 /* ----------------------------------------
    Delete (Unregister) a Registration (Authenticated)
@@ -655,70 +723,82 @@ app.post("/api/register", authenticateToken, (req, res) => {
 /* ----------------------------------------
     Get Registrations for the Authenticated User
  ---------------------------------------- */
- app.get("/api/registrations", authenticateToken, (req, res) => {
-  const userEmail = req.user.email;
-  db.get("SELECT MemID FROM Member WHERE LOWER(Email) = LOWER(?)", [userEmail], (err, member) => {
+app.get("/api/registrations", authenticateToken, (req, res) => {
+  const userEmail = req.user.email.toLowerCase();
+
+  db.get("SELECT MemID FROM Member WHERE LOWER(Email) = ?", [userEmail], (err, member) => {
     if (err) {
       console.error("Error fetching member info:", err);
       return res.status(500).json({ error: "Database error" });
     }
+
     if (member) {
       const query = `
-          SELECT 
-            c.StartDate AS startDate, 
-            c.EndDate AS endDate, 
-            c.StartTime AS startTime, 
-            c.EndTime AS endTime, 
-            c.RoomNumber AS location, 
-            c.ClassName AS name, 
-            c.ClassID AS id,
-            c.Frequency AS frequency
-          FROM Register r
-          JOIN Class c ON r.ClassID = c.ClassID
-          WHERE r.MemID = ? AND c.Status != 'Inactive'
+        SELECT 
+          c.ClassID AS id,
+          c.ClassName AS name,
+          c.Description AS description,
+          c.StartDate AS startDate,
+          c.EndDate AS endDate,
+          c.StartTime AS startTime,
+          c.EndTime AS endTime,
+          c.RoomNumber AS location,
+          c.Status AS status,
+          GROUP_CONCAT(d.DayOfWeek) AS days
+        FROM Register r
+        JOIN Class c ON r.ClassID = c.ClassID
+        LEFT JOIN ClassDays d ON c.ClassID = d.ClassID
+        WHERE r.MemID = ? AND c.Status != 'Inactive'
+        GROUP BY c.ClassID
       `;
-      db.all(query, [member.MemID], (err, rows) => {
+      return db.all(query, [member.MemID], (err, rows) => {
         if (err) {
-          console.error("Error fetching registrations:", err);
-          return res.status(500).json({ error: "Database error" });
+          console.error("Error fetching member registrations:", err);
+          return res.status(500).json({ error: "Failed to fetch registrations" });
         }
         res.json(rows);
       });
-    } else {
-      db.get("SELECT NonMemID FROM NonMember WHERE LOWER(Email) = LOWER(?)", [userEmail], (err, nonMember) => {
-        if (err) {
-          console.error("Error fetching non-member info:", err);
-          return res.status(500).json({ error: "Database error" });
-        }
-        if (!nonMember) {
-          return res.status(404).json({ error: "User not found in Member or NonMember table." });
-        }
-        const query = `
-            SELECT 
-              c.StartDate AS startDate, 
-              c.EndDate AS endDate, 
-              c.StartTime AS startTime, 
-              c.EndTime AS endTime, 
-              c.RoomNumber AS location, 
-              c.ClassName AS name, 
-              c.ClassID AS id,
-              c.Frequency AS frequency
-            FROM Register r
-            JOIN Class c ON r.ClassID = c.ClassID
-            WHERE r.NonMemID = ? AND c.Status != 'Inactive'
-        `;
-        db.all(query, [nonMember.NonMemID], (err, rows) => {
-          if (err) {
-            console.error("Error fetching registrations:", err);
-            return res.status(500).json({ error: "Database error" });
-          }
-          res.json(rows);
-        });
-      });
     }
+
+    // If not a member, check NonMember
+    db.get("SELECT NonMemID FROM NonMember WHERE LOWER(Email) = ?", [userEmail], (err, nonmem) => {
+      if (err) {
+        console.error("Error fetching nonmember info:", err);
+        return res.status(500).json({ error: "Database error" });
+      }
+
+      if (!nonmem) {
+        return res.json([]);
+      }
+
+      const query = `
+        SELECT 
+          c.ClassID AS id,
+          c.ClassName AS name,
+          c.Description AS description,
+          c.StartDate AS startDate,
+          c.EndDate AS endDate,
+          c.StartTime AS startTime,
+          c.EndTime AS endTime,
+          c.RoomNumber AS location,
+          c.Status AS status,
+          GROUP_CONCAT(d.DayOfWeek) AS days
+        FROM Register r
+        JOIN Class c ON r.ClassID = c.ClassID
+        LEFT JOIN ClassDays d ON c.ClassID = d.ClassID
+        WHERE r.NonMemID = ? AND c.Status != 'Inactive'
+        GROUP BY c.ClassID
+      `;
+      db.all(query, [nonmem.NonMemID], (err, rows) => {
+        if (err) {
+          console.error("Error fetching nonmember registrations:", err);
+          return res.status(500).json({ error: "Failed to fetch registrations" });
+        }
+        res.json(rows);
+      });
+    });
   });
 });
-
 
 
 // 9) Soft Delete a Class (Visible to Employees Only)

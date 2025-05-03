@@ -1,17 +1,27 @@
 document.addEventListener("DOMContentLoaded", async function () {
     const programList = document.getElementById("program-list");
     const role = localStorage.getItem("role");
+    const token = localStorage.getItem("token");
 
     try {
-        const response = await fetch("http://localhost:5000/api/programs");
+        const response = await fetch("http://localhost:5000/api/programs", {
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        });
+
         const programs = await response.json();
 
-        // Filter out inactive classes
+        if (!Array.isArray(programs)) {
+            console.error("❌ Expected an array, got:", programs);
+            programList.innerHTML = "<p>Unable to load programs. Are you logged in?</p>";
+            return;
+        }
+
         const activePrograms = programs.filter(p => p.status !== "Inactive");
 
         if (activePrograms.length > 0) {
             programList.innerHTML = activePrograms.map(program => {
-                // Check capacity to determine if register button should be disabled.
                 let registerButton;
                 if (parseInt(program.capacity) === 0) {
                     registerButton = `<button class="register-btn ymca-button" data-id="${program.id}" disabled style="background-color: grey;">Register</button>`;
@@ -41,7 +51,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             programList.innerHTML = "<p>No programs available.</p>";
         }
     } catch (error) {
-        console.error("Error fetching programs:", error);
+        console.error("❌ Error fetching programs:", error);
         programList.innerHTML = "<p>Error loading programs.</p>";
     }
 
@@ -54,7 +64,6 @@ document.addEventListener("DOMContentLoaded", async function () {
 
         if (e.target.classList.contains("delete-btn")) {
             const programId = e.target.getAttribute("data-id");
-            const token = localStorage.getItem("token");
 
             if (!token) {
                 alert("Please log in to delete a class.");

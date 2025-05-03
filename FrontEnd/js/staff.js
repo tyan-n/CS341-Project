@@ -7,6 +7,9 @@ document.getElementById("add-program-form").addEventListener("submit", async fun
     const startTime = document.getElementById("start-time").value;
     const endTime = document.getElementById("end-time").value;
 
+    const selectedDays = Array.from(document.querySelectorAll('input[name="days"]:checked'))
+    .map(cb => cb.value);
+
     // Create Date objects
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Normalize today's date to midnight
@@ -51,7 +54,8 @@ document.getElementById("add-program-form").addEventListener("submit", async fun
         priceNonMember: parseFloat(document.getElementById("price-nonmember").value),
         classSpec: document.getElementById("class-spec").value,
         empId: parseInt(document.getElementById("emp-id").value), // Employee ID
-        frequency: parseInt(document.getElementById("frequency").value),
+        days: selectedDays,
+        //frequency: parseInt(document.getElementById("frequency").value),
         classType: document.getElementById("class-type").value,
         ageGroup: document.getElementById("age-group").value,
         status: document.getElementById("status").value

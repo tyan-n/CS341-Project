@@ -122,18 +122,29 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   function expandRegistrations(regs) {
-    const arr = [];
+    const result = [];
+  
     regs.forEach(reg => {
-      const freq = parseInt(reg.frequency) || 1;
-      for (let i = 0; i < freq; i++) {
-        const occ = { ...reg };
-        const dt = getOccurrenceDate(reg.startDate, i);
-        occ.occurrenceDate = getLocalDateString(dt);
-        arr.push(occ);
+      if (!reg.days) return;
+  
+      const start = parseLocalDate(reg.startDate);
+      const end = parseLocalDate(reg.endDate);
+      const days = reg.days.split(",").map(d => d.trim());
+  
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const weekday = d.toLocaleDateString("en-US", { weekday: "long" });
+        if (days.includes(weekday)) {
+          result.push({
+            ...reg,
+            occurrenceDate: getLocalDateString(new Date(d))
+          });
+        }
       }
     });
-    return arr;
+  
+    return result;
   }
+  
   const expandedRegistrations = expandRegistrations(registrations);
 
   // Modal helpers…

@@ -37,7 +37,7 @@ document.addEventListener("DOMContentLoaded", () => {
     else ISOweekStart.setDate(simple.getDate() + 8 - simple.getDay());
     return ISOweekStart;
   }
-  
+
   function getWeekRangeFromInput(weekValue) {
     const [year, weekStr] = weekValue.split("-W");
     const week = parseInt(weekStr);
@@ -152,52 +152,65 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function renderSchedule() {
     document.querySelectorAll(".class-entry").forEach(e => e.remove());
-
+  
+    if (!selectedWeekRange) return;
+  
+    const weekStart = selectedWeekRange.start;
+    const weekEnd = selectedWeekRange.end;
+  
     userClasses.forEach(cls => {
-      const classDate = new Date(cls.StartDate);
-      if (selectedWeekRange && (classDate < selectedWeekRange.start || classDate > selectedWeekRange.end)) return;
-          const day = getDayName(cls.StartDate);
-          
-      const col = document.querySelector(`.day-column[data-day="${day}"]`);
-      if (!col) return;
-
-      const div = document.createElement("div");
-      div.className = "class-entry";
-
-      const top = timeToOffset(cls.StartTime);
-      const height = timeToOffset(cls.EndTime) - top;
-      div.style.top = `${top}px`;
-      div.style.height = `${height}px`;
-
-      div.innerHTML = `
-        <strong>${cls.name}</strong><br>
-        ${cls.StartTime}–${cls.EndTime}<br>
-        <em>${cls.location}</em><br>
-        <button class="unregister-btn" data-id="${cls.id}">Remove</button>
-      `;
-
-      div.querySelector("button").addEventListener("click", async () => {
-        try {
-          const res = await fetch(`http://localhost:5000/api/users/${currentUser}/register/${cls.id}`, {
-            method: "DELETE",
-            headers: { Authorization: `Bearer ${token}` }
+      const start = new Date(cls.StartDate);
+      const end = new Date(cls.EndDate);
+      const days = (cls.days || "").split(",").map(d => d.trim());
+  
+      for (let d = new Date(weekStart); d <= weekEnd; d.setDate(d.getDate() + 1)) {
+        const weekday = d.toLocaleDateString("en-US", { weekday: "long" });
+  
+        if (days.includes(weekday) && d >= start && d <= end) {
+          const dateStr = d.toISOString().split("T")[0];
+          const col = document.querySelector(`.day-column[data-date="${dateStr}"]`);
+          if (!col) continue;
+  
+          const [h1, m1] = cls.StartTime.split(":").map(Number);
+          const [h2, m2] = cls.EndTime.split(":").map(Number);
+          const top = h1 * 60 + m1 - 7 * 60;
+          const height = Math.max((h2 * 60 + m2) - (h1 * 60 + m1), 40);
+  
+          const div = document.createElement("div");
+          div.className = "class-entry";
+          div.style.top = `${top}px`;
+          div.style.height = `${height}px`;
+          div.innerHTML = `
+            <strong>${cls.name}</strong><br>
+            ${cls.StartTime}–${cls.EndTime}<br>
+            <em>${cls.location}</em><br>
+            <button class="unregister-btn" data-id="${cls.id}">Remove</button>
+          `;
+  
+          div.querySelector(".unregister-btn").addEventListener("click", async () => {
+            try {
+              const res = await fetch(`http://localhost:5000/api/users/${currentUser}/register/${cls.id}`, {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${token}` }
+              });
+              if (res.ok) {
+                userClasses = userClasses.filter(c => c.id !== cls.id);
+                renderSchedule();
+                renderAssignableList();
+              } else {
+                alert("Failed to remove class.");
+              }
+            } catch (err) {
+              console.error(err);
+            }
           });
-          if (res.ok) {
-            userClasses = userClasses.filter(c => c.id !== cls.id);
-            renderSchedule();
-            renderAssignableList();
-          } else {
-            alert("Failed to remove class from user.");
-          }
-        } catch (err) {
-          console.error(err);
+  
+          col.appendChild(div);
         }
-      });
-
-      col.appendChild(div);
+      }
     });
-  }
-
+  }    
+  
   function renderAssignableList() {
     assignList.innerHTML = "";
     const notRegistered = availablePrograms.filter(
