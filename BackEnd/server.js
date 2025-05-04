@@ -54,31 +54,44 @@ app.get("/", (req, res) => {
 ---------------------------------------- */
 app.post("/api/login", (req, res) => {
   const { username, password } = req.body;
+
   const sql = `
-    SELECT Email, Password 
+    SELECT Email, Password, Status 
     FROM Member 
     WHERE Email = ?
     UNION
-    SELECT Email, Password 
+    SELECT Email, Password, Status 
     FROM NonMember 
     WHERE Email = ?
   `;
+
   db.get(sql, [username, username], (err, user) => {
     if (err) {
       return res.status(500).json({ error: "Database error" });
     }
+
     if (!user) {
       return res.status(401).json({ error: "Invalid email" });
     }
+
+    // Check if the user is deactivated
+    if (user.Status && user.Status.toLowerCase() === "inactive") {
+      return res.status(403).json({ error: "Your account has been deactivated." });
+    }
+
+    // Check password
     bcrypt.compare(password, user.Password, (err, isMatch) => {
       if (err) {
         return res.status(500).json({ error: "Error comparing passwords" });
       }
+
       if (!isMatch) {
         return res.status(401).json({ error: "Invalid password" });
       }
+
       const role = user.Email.endsWith("@ymca.org") ? "staff" : "user";
       const token = jwt.sign({ email: user.Email, role }, JWT_SECRET, { expiresIn: "1h" });
+
       res.json({ message: "Login successful", role, token });
     });
   });
@@ -391,7 +404,7 @@ app.get("/api/users/:email/profile", authenticateToken, (req, res) => {
   });
 });
 
-// Update status (members only)
+// Update status and remove registrations if deactivating
 app.patch("/api/users/:email/status", authenticateToken, (req, res) => {
   const email = req.params.email.trim().toLowerCase();
   const { status } = req.body;
@@ -401,14 +414,57 @@ app.patch("/api/users/:email/status", authenticateToken, (req, res) => {
   }
 
   const newStatus = status.charAt(0).toUpperCase() + status.slice(1);
-  db.run("UPDATE Member SET Status = ?, StatusDate = CURRENT_DATE WHERE LOWER(Email) = LOWER(?)",
-    [newStatus, email],
-    function (err) {
-      if (err) return res.status(500).json({ error: "Failed to update status" });
-      if (this.changes === 0) return res.status(404).json({ error: "User not found or not a member" });
-      res.json({ message: `Status updated to ${newStatus}` });
+
+  db.get("SELECT MemID FROM Member WHERE LOWER(Email) = ?", [email], (err, member) => {
+    if (err) return res.status(500).json({ error: "Database error" });
+
+    if (member) {
+      const memID = member.MemID;
+
+      db.run("UPDATE Member SET Status = ?, StatusDate = CURRENT_DATE WHERE MemID = ?", [newStatus, memID], function (err) {
+        if (err) return res.status(500).json({ error: "Failed to update member status" });
+
+        if (newStatus === "Inactive") {
+          db.all("SELECT ClassID FROM Register WHERE MemID = ?", [memID], (err2, rows) => {
+            if (!err2 && rows.length > 0) {
+              const insert = db.prepare(`INSERT INTO Cancelled (ClassID, MemID, NonMemID, DateCancelled, Notified) VALUES (?, ?, NULL, CURRENT_DATE, 0)`);
+              rows.forEach(row => insert.run(row.ClassID, memID));
+              insert.finalize();
+            }
+            db.run("DELETE FROM Register WHERE MemID = ?", [memID]);
+          });
+        }
+
+        return res.json({ message: `Status updated to ${newStatus}` });
+      });
+
+      return;
     }
-  );
+
+    // If not a member, try nonmember
+    db.get("SELECT NonMemID FROM NonMember WHERE LOWER(Email) = ?", [email], (err2, nonmem) => {
+      if (err2 || !nonmem) return res.status(404).json({ error: "User not found" });
+
+      const nonMemID = nonmem.NonMemID;
+
+      db.run("UPDATE NonMember SET Status = ? WHERE NonMemID = ?", [newStatus, nonMemID], function (err3) {
+        if (err3) return res.status(500).json({ error: "Failed to update nonmember status" });
+
+        if (newStatus === "Inactive") {
+          db.all("SELECT ClassID FROM Register WHERE NonMemID = ?", [nonMemID], (err4, rows) => {
+            if (!err4 && rows.length > 0) {
+              const insert = db.prepare(`INSERT INTO Cancelled (ClassID, MemID, NonMemID, DateCancelled, Notified) VALUES (?, NULL, ?, CURRENT_DATE, 0)`);
+              rows.forEach(row => insert.run(row.ClassID, nonMemID));
+              insert.finalize();
+            }
+            db.run("DELETE FROM Register WHERE NonMemID = ?", [nonMemID]);
+          });
+        }
+
+        return res.json({ message: `Status updated to ${newStatus}` });
+      });
+    });
+  });
 });
 
 // Get all registrations for a user (member or nonmember) including recurring days
@@ -462,16 +518,20 @@ app.get("/api/users/:email/registrations", authenticateToken, (req, res) => {
   });
 });
 
-
-// Assign class to MEMBER or NONMEMBER
+// Assign class to MEMBER or NONMEMBER with status check
 app.post("/api/users/:email/register/:classId", authenticateToken, (req, res) => {
   const email = req.params.email.trim().toLowerCase();
   const classId = req.params.classId;
 
-  db.get("SELECT MemID FROM Member WHERE LOWER(Email) = ?", [email], (err, member) => {
+  // Check Member first
+  db.get("SELECT MemID, Status FROM Member WHERE LOWER(Email) = ?", [email], (err, member) => {
     if (err) return res.status(500).json({ error: "Database error" });
 
     if (member) {
+      if (member.Status.toLowerCase() === "inactive") {
+        return res.status(403).json({ error: "Cannot assign class: user is inactive." });
+      }
+
       const sql = "INSERT INTO Register (MemID, ClassID) VALUES (?, ?)";
       return db.run(sql, [member.MemID, classId], function (err) {
         if (err) return res.status(500).json({ error: "Failed to assign class" });
@@ -481,12 +541,17 @@ app.post("/api/users/:email/register/:classId", authenticateToken, (req, res) =>
       });
     }
 
-    db.get("SELECT NonMemID FROM NonMember WHERE LOWER(Email) = ?", [email], (err, nonmem) => {
-      if (err || !nonmem) return res.status(404).json({ error: "User not found" });
+    // Check NonMember
+    db.get("SELECT NonMemID, Status FROM NonMember WHERE LOWER(Email) = ?", [email], (err2, nonmem) => {
+      if (err2 || !nonmem) return res.status(404).json({ error: "User not found" });
+
+      if (nonmem.Status.toLowerCase() === "inactive") {
+        return res.status(403).json({ error: "Cannot assign class: user is inactive." });
+      }
 
       const sql = "INSERT INTO Register (NonMemID, ClassID) VALUES (?, ?)";
-      db.run(sql, [nonmem.NonMemID, classId], function (err) {
-        if (err) return res.status(500).json({ error: "Failed to assign class" });
+      db.run(sql, [nonmem.NonMemID, classId], function (err3) {
+        if (err3) return res.status(500).json({ error: "Failed to assign class" });
 
         db.run("UPDATE Class SET CurrCapacity = CurrCapacity + 1 WHERE ClassID = ?", [classId]);
         res.json({ message: "Class assigned", classId: parseInt(classId) });
