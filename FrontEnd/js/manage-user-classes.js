@@ -14,6 +14,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const inactiveContainer = document.getElementById("inactive-class-list");
   const calendarGrid = document.querySelector(".calendar-grid");
 
+  const searchBox = document.getElementById("class-search");
+  if (searchBox) {
+    searchBox.addEventListener("input", e => {
+      const term = e.target.value.toLowerCase();
+      filterClassLists(term);
+    });
+  }  
+
   const getDayName = dateStr => {
     const date = new Date(dateStr);
     return ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][date.getDay()];
@@ -27,6 +35,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let availablePrograms = [];
   let currentUser = "";
   let userClasses = [];
+  let inactiveClasses = [];
 
 
   function getDateOfISOWeek(week, year) {
@@ -169,7 +178,7 @@ document.addEventListener("DOMContentLoaded", () => {
     assignList.innerHTML = "";
   }
 
-  function renderSchedule() {
+  function renderSchedule(filtered = null) {
     document.querySelectorAll(".class-entry").forEach(e => e.remove());
   
     if (!selectedWeekRange) return;
@@ -177,7 +186,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const weekStart = selectedWeekRange.start;
     const weekEnd = selectedWeekRange.end;
   
-    userClasses.forEach(cls => {
+    (filtered || userClasses).forEach(cls => {
       const start = new Date(cls.StartDate);
       const end = new Date(cls.EndDate);
       const days = (cls.days || "").split(",").map(d => d.trim());
@@ -230,13 +239,13 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }    
   
-  function renderAssignableList() {
+  function renderAssignableList(list = null) {
     assignList.innerHTML = "";
-    const notRegistered = availablePrograms.filter(
+    const source = list || availablePrograms.filter(
       p => !userClasses.some(u => u.id === p.id)
     );
-
-    notRegistered.forEach(cls => {
+  
+    source.forEach(cls => {
       const div = document.createElement("div");
       div.className = "program-card";
       div.innerHTML = `
@@ -245,40 +254,35 @@ document.addEventListener("DOMContentLoaded", () => {
         <p><em>${cls.location}</em></p>
         <button class="assign-btn">Add to User</button>
       `;
-
+  
       div.querySelector(".assign-btn").addEventListener("click", async () => {
-        // Parse new class details
         const newDay = getDayName(cls.startDate);
         const [newStartH, newStartM] = cls.startTime.split(":").map(Number);
         const [newEndH, newEndM] = cls.endTime.split(":").map(Number);
         const newStart = newStartH * 60 + newStartM;
         const newEnd = newEndH * 60 + newEndM;
-      
-        // Check for time conflicts
+  
         const conflict = userClasses.some(uc => {
           const ucDay = getDayName(uc.StartDate);
           if (ucDay !== newDay) return false;
-      
           const [ucStartH, ucStartM] = uc.StartTime.split(":").map(Number);
           const [ucEndH, ucEndM] = uc.EndTime.split(":").map(Number);
           const ucStart = ucStartH * 60 + ucStartM;
           const ucEnd = ucEndH * 60 + ucEndM;
-      
           return Math.max(ucStart, newStart) < Math.min(ucEnd, newEnd);
         });
-      
+  
         if (conflict) {
           alert("⚠️ This class conflicts with an existing class on the user's schedule.");
           return;
         }
-      
-        // No conflict, proceed with assignment
+  
         try {
           const res = await fetch(`http://localhost:5000/api/users/${currentUser}/register/${cls.id}`, {
             method: "POST",
             headers: { Authorization: `Bearer ${token}` }
           });
-      
+  
           if (res.ok) {
             const newClass = await res.json();
             userClasses.push(newClass);
@@ -291,60 +295,64 @@ document.addEventListener("DOMContentLoaded", () => {
           console.error(err);
         }
       });
-      
+  
       assignList.appendChild(div);
     });
-  }
+  }  
 
   async function loadInactiveClasses() {
     if (!inactiveContainer) return;
-
+  
     try {
       const res = await fetch("http://localhost:5000/api/programs/inactive", {
         headers: { Authorization: `Bearer ${token}` }
       });
-
-      const data = await res.json();
-      inactiveContainer.innerHTML = "";
-
-      if (data.length === 0) {
-        inactiveContainer.innerHTML = "<p>No inactive classes at the moment.</p>";
-        return;
-      }
-
-      data.forEach(cls => {
-        const div = document.createElement("div");
-        div.className = "program-card inactive";
-        div.innerHTML = `
-          <h4>${cls.name}</h4>
-          <p><strong>${cls.startDate}</strong> @ ${cls.startTime}–${cls.endTime}</p>
-          <p><em>${cls.location}</em></p>
-          <button class="success-button reactivate-btn" data-id="${cls.id}">Reactivate</button>
-        `;
-
-        div.querySelector(".reactivate-btn").addEventListener("click", async () => {
-          const res = await fetch(`http://localhost:5000/api/programs/${cls.id}/reactivate`, {
-            method: "PATCH",
-            headers: { Authorization: `Bearer ${token}` }
-          });
-
-          if (res.ok) {
-            alert("Class reactivated");
-            loadInactiveClasses();
-            form.dispatchEvent(new Event("submit"));
-          } else {
-            alert("Failed to reactivate");
-          }
-        });
-
-        inactiveContainer.appendChild(div);
-      });
+  
+      inactiveClasses = await res.json(); // <-- store globally
+      renderInactiveList(); // <-- render via helper
     } catch (err) {
       console.error("Failed to fetch inactive", err);
       inactiveContainer.innerHTML = "<p>Could not load inactive classes.</p>";
     }
   }
 
+  function renderInactiveList(list = inactiveClasses) {
+    inactiveContainer.innerHTML = "";
+  
+    if (list.length === 0) {
+      inactiveContainer.innerHTML = "<p>No inactive classes at the moment.</p>";
+      return;
+    }
+  
+    list.forEach(cls => {
+      const div = document.createElement("div");
+      div.className = "program-card inactive";
+      div.innerHTML = `
+        <h4>${cls.name}</h4>
+        <p><strong>${cls.startDate}</strong> @ ${cls.startTime}–${cls.endTime}</p>
+        <p><em>${cls.location}</em></p>
+        <button class="success-button reactivate-btn" data-id="${cls.id}">Reactivate</button>
+      `;
+  
+      div.querySelector(".reactivate-btn").addEventListener("click", async () => {
+        const res = await fetch(`http://localhost:5000/api/programs/${cls.id}/reactivate`, {
+          method: "PATCH",
+          headers: { Authorization: `Bearer ${token}` }
+        });
+  
+        if (res.ok) {
+          alert("Class reactivated");
+          await loadInactiveClasses();
+          form.dispatchEvent(new Event("submit"));
+        } else {
+          alert("Failed to reactivate");
+        }
+      });
+  
+      inactiveContainer.appendChild(div);
+    });
+  }
+    
   async function loadAllPrograms() {
     try {
       const res = await fetch("http://localhost:5000/api/programs", {
@@ -414,6 +422,34 @@ document.addEventListener("DOMContentLoaded", () => {
   }  
 
   autoSelectCurrentWeek();
+
+  function filterClassLists(searchTerm) {
+    const activeFiltered = availablePrograms.filter(p =>
+      !userClasses.some(u => u.id === p.id) &&
+      p.name.toLowerCase().includes(searchTerm)
+    );
+  
+    const inactiveFiltered = inactiveClasses.filter(p =>
+      p.name.toLowerCase().includes(searchTerm)
+    );
+  
+    const registeredFiltered = userClasses.filter(p =>
+      p.name.toLowerCase().includes(searchTerm)
+    );
+  
+    renderAssignableList(activeFiltered);
+    renderInactiveList(inactiveFiltered);
+    renderSchedule(registeredFiltered); 
+
+    if (allProgramsContainer && allProgramsContainer.children.length > 0) {
+      const allCards = allProgramsContainer.querySelectorAll(".program-card");
+      allCards.forEach(card => {
+        const className = card.querySelector("h4")?.innerText.toLowerCase() || "";
+        card.style.display = className.includes(searchTerm) ? "block" : "none";
+      });
+    }
+    
+  }  
 
   async function renderFamilyInfo() {
     const target = document.getElementById("family-info");
