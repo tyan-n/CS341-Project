@@ -116,10 +116,12 @@ CREATE TABLE FamilyAccount (
 CREATE TABLE FamilyMember (
     FamilyID INTEGER NOT NULL,
     MemID INTEGER,
+    NonMemID INTEGER,
     DepID INTEGER,
-    PRIMARY KEY (FamilyID, MemID, DepID),
+    PRIMARY KEY (FamilyID, MemID, NonMemID, DepID),
     FOREIGN KEY (FamilyID) REFERENCES FamilyAccount(FamilyID),
     FOREIGN KEY (MemID) REFERENCES Member(MemID),
+    FOREIGN KEY (NonMemID) REFERENCES NonMember(NonMemID),
     FOREIGN KEY (DepID) REFERENCES Dependent(DepID)
 );
 
