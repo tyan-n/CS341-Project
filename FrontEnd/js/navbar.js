@@ -21,12 +21,14 @@ document.addEventListener("DOMContentLoaded", function () {
     const manageUserClassesLink = `<a href="${pathPrefix}manage-user-classes.html"><i class="fas fa-user-edit"></i> Manage User Classes</a>`;
     const loginBtn = `<a href="${pathPrefix}login.html" id="login-link"><i class="fas fa-user"></i> Sign In / Register</a>`;
     const logoutBtn = `<button id="logout-button"><i class="fas fa-sign-out-alt"></i> Logout</button>`;
+    const helpLink = `<a href="${pathPrefix}help.html"><i class="fas fa-question-circle"></i> Help</a>`;
   
     // Build Nav HTML
     nav.innerHTML = `
       <div class="nav-content">
         <a href="${homePath}" class="logo">😊 YMCA</a>
         <div class="nav-links">
+	  ${helpLink}
           ${browseLink}
           ${isLoggedIn ? myClassesLink : ""}
           ${isLoggedIn ? familyAccountLink : ""}
