@@ -495,7 +495,7 @@ app.post("/api/users/:email/register/:classId", authenticateToken, (req, res) =>
   });
 });
 
-// Unregister class for MEMBER or NONMEMBER
+// Unregister class for MEMBER or NONMEMBER and log in Cancelled
 app.delete("/api/users/:email/register/:classId", authenticateToken, (req, res) => {
   const email = req.params.email.trim().toLowerCase();
   const classId = req.params.classId;
@@ -509,24 +509,40 @@ app.delete("/api/users/:email/register/:classId", authenticateToken, (req, res) 
         if (err) return res.status(500).json({ error: "Unregistration failed" });
 
         db.run("UPDATE Class SET CurrCapacity = CurrCapacity - 1 WHERE ClassID = ?", [classId]);
-        res.json({ message: "Class unregistered" });
+
+        // Log into Cancelled table
+        db.run(
+          `INSERT INTO Cancelled (ClassID, MemID, NonMemID, DateCancelled, Notified)
+           VALUES (?, ?, NULL, CURRENT_DATE, 0)`,
+          [classId, member.MemID]
+        );
+
+        res.json({ message: "Class unregistered and user notified." });
       });
     }
 
-    db.get("SELECT NonMemID FROM NonMember WHERE LOWER(Email) = ?", [email], (err, nonmem) => {
-      if (err || !nonmem) return res.status(404).json({ error: "User not found" });
+    // Try NonMember
+    db.get("SELECT NonMemID FROM NonMember WHERE LOWER(Email) = ?", [email], (err2, nonmem) => {
+      if (err2 || !nonmem) return res.status(404).json({ error: "User not found" });
 
       const sql = "DELETE FROM Register WHERE NonMemID = ? AND ClassID = ?";
-      db.run(sql, [nonmem.NonMemID, classId], function (err) {
-        if (err) return res.status(500).json({ error: "Unregistration failed" });
+      db.run(sql, [nonmem.NonMemID, classId], function (err3) {
+        if (err3) return res.status(500).json({ error: "Unregistration failed" });
 
         db.run("UPDATE Class SET CurrCapacity = CurrCapacity - 1 WHERE ClassID = ?", [classId]);
-        res.json({ message: "Class unregistered" });
+
+        // Log into Cancelled table
+        db.run(
+          `INSERT INTO Cancelled (ClassID, MemID, NonMemID, DateCancelled, Notified)
+           VALUES (?, ?, NULL, CURRENT_DATE, 0)`,
+          [classId, member.MemID]
+        );             
+
+        res.json({ message: "Class unregistered and user notified." });
       });
     });
   });
 });
-
 
 /* ----------------------------------------
    Delete (Unregister) a Registration (Authenticated)
@@ -800,26 +816,60 @@ app.get("/api/registrations", authenticateToken, (req, res) => {
   });
 });
 
-
 // 9) Soft Delete a Class (Visible to Employees Only)
-
 app.delete("/api/programs/:id", authenticateToken, (req, res) => {
   const classId = req.params.id;
-  const userEmail = req.user.email;
-  //  Removed AcctType check — assumed frontend controls this
-  const sql = "UPDATE Class SET Status = 'Inactive' WHERE ClassID = ?";
-  db.run(sql, [classId], function (err) {
-      if (err) {
-        console.error("❌ Error updating class status:", err.message);
-             return res.status(500).json({ error: "Failed to mark class inactive" });
-         }
 
-         if (this.changes === 0) {
-          return res.status(404).json({ error: "Class not found" });
+  if (req.user.role !== "staff") {
+    return res.status(403).json({ error: "Only staff can delete classes." });
+  }
+
+  db.serialize(() => {
+    // Step 1: Get all Members and NonMembers registered for this class
+    db.all(`
+      SELECT r.MemID, r.NonMemID
+      FROM Register r
+      WHERE r.ClassID = ?`, [classId], (err, rows) => {
+      if (err) {
+        console.error("Failed to fetch registered users:", err.message);
+        return res.status(500).json({ error: "Failed to gather user list." });
       }
 
-      res.json({ message: "✅ Class marked as inactive." });
+      // Step 2: For each user, insert into Cancelled
+      const insert = db.prepare(`
+        INSERT INTO Cancelled (ClassID, MemID, NonMemID, DateCancelled, Notified)
+        VALUES (?, ?, ?, CURRENT_DATE, 0)
+      `);
+
+      for (const row of rows) {
+        insert.run(classId, row.MemID || null, row.NonMemID || null);
+      }      
+
+      insert.finalize();
+
+      // Step 3: Delete from Register
+      db.run("DELETE FROM Register WHERE ClassID = ?", [classId], (err2) => {
+        if (err2) {
+          console.error("Failed to remove from schedules:", err2.message);
+          return res.status(500).json({ error: "Failed to remove class from all schedules" });
+        }
+
+        // Step 4: Mark class as inactive
+        db.run("UPDATE Class SET Status = 'Inactive' WHERE ClassID = ?", [classId], function (err3) {
+          if (err3) {
+            console.error("Failed to deactivate class:", err3.message);
+            return res.status(500).json({ error: "Failed to deactivate class" });
+          }
+
+          if (this.changes === 0) {
+            return res.status(404).json({ error: "Class not found" });
+          }
+
+          res.json({ message: "Class deactivated and users notified." });
+        });
+      });
     });
+  });
 });
 
 /* ----------------------------------------
@@ -978,5 +1028,82 @@ app.delete("/api/family/delete/:id", authenticateToken, (req, res) => {
       });
   });
 });
+
+/* ----------------------------------------
+    Cancelled Class Notifications
+ ---------------------------------------- */
+
+// Show Cancelled Notifications (on login)
+app.get("/api/cancelled", authenticateToken, (req, res) => {
+  const email = req.user.email.toLowerCase();
+
+  db.get("SELECT MemID FROM Member WHERE LOWER(Email) = ?", [email], (err, member) => {
+    if (err) return res.status(500).json({ error: "Database error" });
+
+    if (member) {
+      const sql = `
+        SELECT c.ClassID, cls.ClassName AS Name
+        FROM Cancelled c
+        JOIN Class cls ON c.ClassID = cls.ClassID
+        WHERE c.MemID = ? AND c.Notified = 0
+      `;
+      return db.all(sql, [member.MemID], (err, rows) => {
+        if (err) return res.status(500).json({ error: "Failed to fetch cancellations." });
+        return res.json(rows);
+      });
+    }
+
+    db.get("SELECT NonMemID FROM NonMember WHERE LOWER(Email) = ?", [email], (err2, nonmem) => {
+      if (err2 || !nonmem) return res.json([]);
+
+      const sql = `
+        SELECT c.ClassID, cls.ClassName AS Name
+        FROM Cancelled c
+        JOIN Class cls ON c.ClassID = cls.ClassID
+        WHERE c.NonMemID = ? AND c.Notified = 0
+      `;
+      db.all(sql, [nonmem.NonMemID], (err3, rows) => {
+        if (err3) return res.status(500).json({ error: "Failed to fetch cancellations." });
+        return res.json(rows);
+      });
+    });
+  });
+});
+
+
+// Dismiss Notifications
+app.delete("/api/cancelled", authenticateToken, (req, res) => {
+  const email = req.user.email.toLowerCase();
+
+  db.get("SELECT MemID FROM Member WHERE LOWER(Email) = ?", [email], (err, member) => {
+    if (err) return res.status(500).json({ error: "Database error" });
+
+    if (member) {
+      return db.run(
+        "UPDATE Cancelled SET Notified = 1 WHERE MemID = ? AND Notified = 0",
+        [member.MemID],
+        function (err2) {
+          if (err2) return res.status(500).json({ error: "Failed to update notifications" });
+          return res.json({ message: "Notifications dismissed." });
+        }
+      );
+    }
+
+    db.get("SELECT NonMemID FROM NonMember WHERE LOWER(Email) = ?", [email], (err2, nonmem) => {
+      if (err2 || !nonmem) return res.status(404).json({ error: "User not found" });
+
+      db.run(
+        "UPDATE Cancelled SET Notified = 1 WHERE NonMemID = ? AND Notified = 0",
+        [nonmem.NonMemID],
+        function (err3) {
+          if (err3) return res.status(500).json({ error: "Failed to update notifications" });
+          return res.json({ message: "Notifications dismissed." });
+        }
+      );
+    });
+  });
+});
+
+
 
 app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));

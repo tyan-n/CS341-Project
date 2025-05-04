@@ -73,5 +73,27 @@ document.addEventListener("DOMContentLoaded", function () {
       });
     }
   }
+
+    // Class cancellation notification popup
+    if (isLoggedIn) {
+      fetch("http://localhost:5000/api/cancelled", {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then(res => res.json())
+        .then(cancellations => {
+          if (cancellations.length > 0) {
+            const summary = cancellations.map(c => `• ${c.Name}`).join("\n");
+            const message = `📣 The following classes were removed from your schedule:\n\n${summary}\n\nClick OK to dismiss.`;
+            if (confirm(message)) {
+              fetch("http://localhost:5000/api/cancelled", {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${token}` }
+              });
+            }
+          }
+        })
+        .catch(err => console.error("❌ Failed to fetch class notifications:", err));
+    }
+  
 });
   
