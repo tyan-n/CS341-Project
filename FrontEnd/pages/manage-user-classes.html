@@ -7,30 +7,53 @@
   <link rel="stylesheet" href="../css/styles.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <style>
-    /* --- Time and Calendar Layout --- */
-    .calendar-container {
-      display: flex;
+    .calendar-wrapper {
       margin-top: 2rem;
       border: 1px solid #ccc;
-      border-radius: 8px;
+      border-radius: 6px;
       overflow-x: auto;
       background-color: #fff;
     }
 
+    .calendar-header {
+      display: flex;
+      background-color: #0077cc;
+      color: white;
+      font-size: 14px;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .time-header {
+      width: 60px;
+      background-color: #005fa3;
+    }
+
+    .day-header {
+      flex: 1;
+      padding: 8px 0;
+      border-left: 1px solid #005fa3;
+    }
+
+    .calendar-body {
+      display: flex;
+      max-height: 840px;
+      overflow-y: auto;
+    }
+
     .time-column {
       width: 60px;
-      border-right: 1px solid #ccc;
-      padding-top: 30px;
+      background: #f3f3f3;
       font-size: 12px;
-      background-color: #f3f3f3;
+      text-align: right;
+      color: #777;
     }
 
     .time-column div {
       height: 60px;
-      padding: 2px 4px;
-      text-align: right;
+      padding-right: 6px;
+      line-height: 60px;
       box-sizing: border-box;
-      color: #777;
     }
 
     .calendar-grid {
@@ -44,18 +67,7 @@
       flex: 1;
       border-left: 1px solid #ccc;
       position: relative;
-      min-height: 900px;
-    }
-
-    .day-column h3 {
-      position: sticky;
-      top: 0;
-      background-color: #0077cc;
-      color: white;
-      font-size: 13px;
-      margin: 0;
-      padding: 6px;
-      text-align: center;
+      min-height: 840px;
     }
 
     .class-entry {
@@ -107,16 +119,31 @@
         <input type="week" id="week-selector" />
       </div>
 
-      <!-- 🕒 Aligned Calendar View -->
-      <div class="calendar-container">
-        <div class="time-column">
-          <div>06:00</div><div>07:00</div><div>08:00</div><div>09:00</div>
-          <div>10:00</div><div>11:00</div><div>12:00</div><div>13:00</div>
-          <div>14:00</div><div>15:00</div><div>16:00</div><div>17:00</div>
-          <div>18:00</div><div>19:00</div><div>20:00</div>
+      <!-- 🗓️ Calendar Layout -->
+      <div class="calendar-wrapper">
+        <!-- Weekday headers -->
+        <div class="calendar-header">
+          <div class="time-header"></div>
+          <div class="day-header">Monday</div>
+          <div class="day-header">Tuesday</div>
+          <div class="day-header">Wednesday</div>
+          <div class="day-header">Thursday</div>
+          <div class="day-header">Friday</div>
+          <div class="day-header">Saturday</div>
+          <div class="day-header">Sunday</div>
         </div>
-        <div class="calendar-grid">
-          <!-- Day columns inserted dynamically via JS -->
+
+        <!-- Scrollable calendar grid -->
+        <div class="calendar-body">
+          <div class="time-column">
+            <div>06:00</div><div>07:00</div><div>08:00</div><div>09:00</div>
+            <div>10:00</div><div>11:00</div><div>12:00</div><div>13:00</div>
+            <div>14:00</div><div>15:00</div><div>16:00</div><div>17:00</div>
+            <div>18:00</div><div>19:00</div><div>20:00</div>
+          </div>
+          <div class="calendar-grid">
+            <!-- JS will inject 7x .day-column with data-date="YYYY-MM-DD" -->
+          </div>
         </div>
       </div>
 

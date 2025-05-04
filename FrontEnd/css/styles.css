@@ -289,12 +289,6 @@ textarea {
 }
 
 /* ======== Weekly Calendar View ======== */
-.calendar-grid {
-    display: grid;
-    grid-template-columns: 60px repeat(7, 1fr);
-    align-items: start;
-    gap: 1px;
-  }
   
   .time-column {
     display: flex;
@@ -316,18 +310,6 @@ textarea {
     position: relative;
     padding-top: 30px;
     min-height: 900px;
-  }
-  
-  .day-column h3 {
-    position: absolute;
-    top: 0;
-    width: 100%;
-    text-align: center;
-    font-size: 0.9rem;
-    background: #f9f9f9;
-    margin: 0;
-    padding: 6px 0;
-    border-bottom: 1px solid #ccc;
   }
   
   .class-entry {
@@ -522,4 +504,92 @@ a.ymca-button:hover {
   width: 100%;
   box-sizing: border-box;
 }
+/* === Calendar Header (Weekday Titles Above) === */
+.calendar-wrapper {
+  margin-top: 2rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  overflow-x: auto;
+  background-color: #fff;
+}
 
+.calendar-header {
+  display: flex;
+  background-color: #0077cc;
+  color: white;
+  font-size: 14px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.time-header {
+  width: 60px;
+  background-color: #005fa3;
+}
+
+.day-header {
+  flex: 1;
+  padding: 8px 0;
+  border-left: 1px solid #005fa3;
+}
+
+/* === Calendar Grid Below === */
+.calendar-body {
+  display: flex;
+  max-height: 840px; /* Scrollable height from 6am–8pm */
+  overflow-y: auto;
+}
+
+.time-column {
+  width: 60px;
+  background: #f3f3f3;
+  font-size: 12px;
+  text-align: right;
+  color: #777;
+}
+
+.time-column div {
+  height: 60px; /* 1 hour = 60px */
+  padding-right: 6px;
+  line-height: 60px;
+  box-sizing: border-box;
+  border-bottom: 1px solid #eee;
+}
+
+.calendar-grid {
+  display: flex;
+  flex: 1;
+  min-width: 700px;
+  background-color: #f9f9f9;
+}
+
+.day-column {
+  flex: 1;
+  border-left: 1px solid #ccc;
+  position: relative;
+  min-height: 840px;
+}
+
+.class-entry {
+  position: absolute;
+  left: 5px;
+  right: 5px;
+  background-color: #e6f7ff;
+  border: 1px solid #91d5ff;
+  border-radius: 4px;
+  padding: 4px;
+  font-size: 11px;
+  color: #333;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.class-entry button {
+  margin-top: 4px;
+  background-color: #ff4d4f;
+  border: none;
+  color: white;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+}

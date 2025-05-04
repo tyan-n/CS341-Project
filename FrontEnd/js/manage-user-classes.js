@@ -63,10 +63,6 @@ document.addEventListener("DOMContentLoaded", () => {
       dayCol.className = "day-column";
       dayCol.setAttribute("data-date", dateStr);
   
-      const header = document.createElement("h3");
-      header.textContent = weekday;
-      dayCol.appendChild(header);
-  
       calendarGrid.appendChild(dayCol);
     }
   }  
@@ -196,7 +192,7 @@ document.addEventListener("DOMContentLoaded", () => {
   
           const [h1, m1] = cls.StartTime.split(":").map(Number);
           const [h2, m2] = cls.EndTime.split(":").map(Number);
-          const top = h1 * 60 + m1 - 7 * 60;
+          const top = h1 * 60 + m1 - 6 * 60 + 30;
           const height = Math.max((h2 * 60 + m2) - (h1 * 60 + m1), 40);
   
           const div = document.createElement("div");
