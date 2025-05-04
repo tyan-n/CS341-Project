@@ -6,6 +6,82 @@
   <title>Manage User Classes</title>
   <link rel="stylesheet" href="../css/styles.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    /* --- Time and Calendar Layout --- */
+    .calendar-container {
+      display: flex;
+      margin-top: 2rem;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      overflow-x: auto;
+      background-color: #fff;
+    }
+
+    .time-column {
+      width: 60px;
+      border-right: 1px solid #ccc;
+      padding-top: 30px;
+      font-size: 12px;
+      background-color: #f3f3f3;
+    }
+
+    .time-column div {
+      height: 60px;
+      padding: 2px 4px;
+      text-align: right;
+      box-sizing: border-box;
+      color: #777;
+    }
+
+    .calendar-grid {
+      display: flex;
+      flex: 1;
+      min-width: 700px;
+      background-color: #f9f9f9;
+    }
+
+    .day-column {
+      flex: 1;
+      border-left: 1px solid #ccc;
+      position: relative;
+      min-height: 900px;
+    }
+
+    .day-column h3 {
+      position: sticky;
+      top: 0;
+      background-color: #0077cc;
+      color: white;
+      font-size: 13px;
+      margin: 0;
+      padding: 6px;
+      text-align: center;
+    }
+
+    .class-entry {
+      position: absolute;
+      left: 5px;
+      right: 5px;
+      background-color: #e6f7ff;
+      border: 1px solid #91d5ff;
+      border-radius: 4px;
+      padding: 4px;
+      font-size: 11px;
+      color: #333;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+
+    .class-entry button {
+      margin-top: 4px;
+      background-color: #ff4d4f;
+      border: none;
+      color: white;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
   <script src="../js/navbar.js"></script>
@@ -18,37 +94,30 @@
       <button type="submit"><i class="fas fa-search"></i> Find User</button>
     </form>
 
-    <!-- 🔍 Family Info will be injected here -->
     <div id="family-info" class="family-display" style="margin-top: 20px;"></div>
 
     <div id="user-schedule">
-      <!-- 🧑‍💼 User Header + Status -->
       <div id="user-header-container" style="display:none;">
         <h3 id="user-header"></h3>
         <div id="user-status-controls" style="margin-top: 10px;"></div>
       </div>
 
-      <!-- Week Selector -->
       <div style="margin-top: 20px;">
         <label for="week-selector"><strong>📅 Select Week:</strong></label>
         <input type="week" id="week-selector" />
       </div>
 
-      <!-- Time Grid -->
-      <div class="calendar-grid" style="margin-top: 2rem;">
+      <!-- 🕒 Aligned Calendar View -->
+      <div class="calendar-container">
         <div class="time-column">
           <div>06:00</div><div>07:00</div><div>08:00</div><div>09:00</div>
           <div>10:00</div><div>11:00</div><div>12:00</div><div>13:00</div>
           <div>14:00</div><div>15:00</div><div>16:00</div><div>17:00</div>
           <div>18:00</div><div>19:00</div><div>20:00</div>
         </div>
-        <div class="day-column" data-day="Monday"><h3>Monday</h3></div>
-        <div class="day-column" data-day="Tuesday"><h3>Tuesday</h3></div>
-        <div class="day-column" data-day="Wednesday"><h3>Wednesday</h3></div>
-        <div class="day-column" data-day="Thursday"><h3>Thursday</h3></div>
-        <div class="day-column" data-day="Friday"><h3>Friday</h3></div>
-        <div class="day-column" data-day="Saturday"><h3>Saturday</h3></div>
-        <div class="day-column" data-day="Sunday"><h3>Sunday</h3></div>
+        <div class="calendar-grid">
+          <!-- Day columns inserted dynamically via JS -->
+        </div>
       </div>
 
       <div id="calendar-message"></div>
@@ -61,7 +130,6 @@
     <div id="all-programs" class="program-list"></div>
   </main>
 
-  <!-- Inactive Class Manager -->
   <div id="reactivate-classes" class="reactivate-container">
     <h3>🌀 Inactive Classes</h3>
     <div id="inactive-class-list" class="program-grid"></div>

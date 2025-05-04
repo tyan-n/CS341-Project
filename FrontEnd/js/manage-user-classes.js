@@ -48,9 +48,32 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   
   let selectedWeekRange = null;
+
+  function renderCalendarGrid(weekStart) {
+    calendarGrid.innerHTML = ""; // Clear previous columns
+  
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(weekStart);
+      date.setDate(weekStart.getDate() + i);
+  
+      const dateStr = date.toISOString().split("T")[0];
+      const weekday = date.toLocaleDateString(undefined, { weekday: "long" });
+  
+      const dayCol = document.createElement("div");
+      dayCol.className = "day-column";
+      dayCol.setAttribute("data-date", dateStr);
+  
+      const header = document.createElement("h3");
+      header.textContent = weekday;
+      dayCol.appendChild(header);
+  
+      calendarGrid.appendChild(dayCol);
+    }
+  }  
   
   document.getElementById("week-selector").addEventListener("change", e => {
     selectedWeekRange = getWeekRangeFromInput(e.target.value);
+    renderCalendarGrid(selectedWeekRange.start); 
     renderSchedule(); // dynamically refresh view
   });  
 
@@ -374,6 +397,27 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("Failed to fetch all programs", err);
     }
   }
+
+  function getISOWeek(date) {
+    const target = new Date(date.valueOf());
+    const dayNr = (date.getDay() + 6) % 7;
+    target.setDate(target.getDate() - dayNr + 3);
+    const firstThursday = new Date(target.getFullYear(), 0, 4);
+    const diff = target - firstThursday;
+    return 1 + Math.round(diff / (7 * 24 * 60 * 60 * 1000));
+  }
+  
+  function autoSelectCurrentWeek() {
+    const today = new Date();
+    const weekStr = `${today.getFullYear()}-W${String(getISOWeek(today)).padStart(2, '0')}`;
+    const weekInput = document.getElementById("week-selector");
+  
+    weekInput.value = weekStr;
+    selectedWeekRange = getWeekRangeFromInput(weekStr);
+    renderCalendarGrid(selectedWeekRange.start);
+  }  
+
+  autoSelectCurrentWeek();
 
   async function renderFamilyInfo() {
     const target = document.getElementById("family-info");
