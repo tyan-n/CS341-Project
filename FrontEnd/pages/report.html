@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Registration Report</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="../css/styles.css" />
+</head>
+<body>
+  <script src="../js/navbar.js"></script>
+
+  <main class="report-container">
+    <h2>📊 Registration Report</h2>
+
+    <form id="report-form">
+        <label for="user-email"><strong>User Email (required):</strong></label>
+        <input type="email" id="user-email" placeholder="user@example.com" required />
+      
+        <label for="from-date"><strong>From (Month, Year):</strong></label>
+        <input type="month" id="from-date" required />
+      
+        <label for="to-date"><strong>To (Month, Year):</strong></label>
+        <input type="month" id="to-date" required />
+      
+        <button type="submit">Generate Report</button>
+      </form>           
+
+    <div id="report-results" style="margin-top: 2rem;">
+      <table id="report-table" class="styled-table" style="width: 100%; display: none;">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Email</th>
+            <th>Class</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </main>
+
+  <hr />
+<h3>🔎 Lookup Students by Class</h3>
+<form id="class-search-form">
+  <label for="class-name"><strong>Class Name:</strong></label>
+  <input type="text" id="class-name" placeholder="Enter class name..." required />
+  <button type="submit">Find Classes</button>
+</form>
+
+<select id="class-selector" style="margin-top: 10px; display:none;"></select>
+
+<table id="class-roster-table" class="styled-table" style="width: 100%; display: none; margin-top: 20px;">
+  <thead>
+    <tr>
+      <th>Full Name</th>
+      <th>Email</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+  <script src="../js/report.js"></script>
+</body>
+</html>

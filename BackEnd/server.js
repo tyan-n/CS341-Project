@@ -1170,5 +1170,86 @@ app.delete("/api/cancelled", authenticateToken, (req, res) => {
 });
 
 
+/* ----------------------------------------
+    Admin Registration Report by User
+ ---------------------------------------- */
+ app.get("/api/reports/registrations", authenticateToken, (req, res) => {
+  if (req.user.role !== "staff") {
+    return res.status(403).json({ error: "Access denied" });
+  }
+
+  const { from, to, email } = req.query;
+  if (!from || !to) {
+    return res.status(400).json({ error: "Missing date range" });
+  }
+
+  let sql = `
+    SELECT 
+      r.ClassID,
+      c.ClassName,
+      c.StartDate,
+      c.EndDate,
+      COALESCE(m.Email, n.Email) AS Email,
+      COALESCE(m.FName || ' ' || m.LName, n.FName || ' ' || n.LName) AS FullName
+    FROM Register r
+    JOIN Class c ON r.ClassID = c.ClassID
+    LEFT JOIN Member m ON r.MemID = m.MemID
+    LEFT JOIN NonMember n ON r.NonMemID = n.NonMemID
+    WHERE DATE(c.StartDate) >= DATE(?) AND DATE(c.EndDate) <= DATE(?)
+  `;
+  const params = [from, to];
+
+  if (email) {
+    sql += ` AND LOWER(COALESCE(m.Email, n.Email)) = LOWER(?)`;
+    params.push(email);
+  }
+
+  sql += ` ORDER BY c.StartDate, FullName`;
+
+  db.all(sql, params, (err, rows) => {
+    if (err) return res.status(500).json({ error: "Database error" });
+    res.json(rows);
+  });
+});
+
+/* ----------------------------------------
+    Admin Registration Report by Class
+ ---------------------------------------- */
+ app.get("/api/classes/search", authenticateToken, (req, res) => {
+  if (req.user.role !== "staff") return res.status(403).json({ error: "Access denied" });
+
+  const { name } = req.query;
+  if (!name) return res.status(400).json({ error: "Missing class name" });
+
+  db.all(`
+    SELECT ClassID, ClassName, StartDate, EndDate
+    FROM Class
+    WHERE LOWER(ClassName) LIKE LOWER(?)
+    ORDER BY StartDate DESC
+  `, [`%${name}%`], (err, rows) => {
+    if (err) return res.status(500).json({ error: "Database error" });
+    res.json(rows);
+  });
+});
+
+app.get("/api/classes/:id/roster", authenticateToken, (req, res) => {
+  if (req.user.role !== "staff") return res.status(403).json({ error: "Access denied" });
+
+  const classId = req.params.id;
+
+  db.all(`
+    SELECT 
+      COALESCE(m.FName || ' ' || m.LName, n.FName || ' ' || n.LName) AS FullName,
+      COALESCE(m.Email, n.Email) AS Email
+    FROM Register r
+    LEFT JOIN Member m ON r.MemID = m.MemID
+    LEFT JOIN NonMember n ON r.NonMemID = n.NonMemID
+    WHERE r.ClassID = ?
+    ORDER BY FullName
+  `, [classId], (err, rows) => {
+    if (err) return res.status(500).json({ error: "Failed to get roster" });
+    res.json(rows);
+  });
+});
 
 app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));

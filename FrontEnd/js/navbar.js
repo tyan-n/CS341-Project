@@ -18,6 +18,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const familyAccountLink = `<a href="#" id="family-link"><i class="fas fa-users"></i> Family Account</a>`;
     const createClassLink = `<a href="${pathPrefix}staff.html"><i class="fas fa-plus-circle"></i> Create a Class</a>`;
     const timesheetLink = `<a href="${pathPrefix}employment-timesheet.html"><i class="fas fa-briefcase"></i> Employment Timesheet</a>`;
+    const adminReportLink = `<a href="${pathPrefix}report.html"><i class="fas fa-file-alt"></i> Registration Report</a>`;
     const manageUserClassesLink = `<a href="${pathPrefix}manage-user-classes.html"><i class="fas fa-user-edit"></i> Manage User Classes</a>`;
     const loginBtn = `<a href="${pathPrefix}login.html" id="login-link"><i class="fas fa-user"></i> Sign In / Register</a>`;
     const logoutBtn = `<button id="logout-button"><i class="fas fa-sign-out-alt"></i> Logout</button>`;
@@ -35,6 +36,7 @@ document.addEventListener("DOMContentLoaded", function () {
           ${isStaff ? createClassLink : ""}
           ${isStaff ? timesheetLink : ""}
           ${isStaff ? manageUserClassesLink : ""}
+          ${isStaff ? adminReportLink : ""}
           ${isLoggedIn ? logoutBtn : loginBtn}
         </div>
       </div>
