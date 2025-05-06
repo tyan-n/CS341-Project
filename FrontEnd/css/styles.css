@@ -225,6 +225,16 @@ textarea {
     margin-top: 25px;
 }
 
+.program-list.empty {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  min-height: 150px; /* optional: gives it some space */
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
 .program-card {
     background: white;
     padding: 20px;

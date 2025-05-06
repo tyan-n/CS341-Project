@@ -14,9 +14,11 @@ document.addEventListener("DOMContentLoaded", async function () {
 
         if (!Array.isArray(programs)) {
             console.error("❌ Expected an array, got:", programs);
+            programList.classList.add("empty");
             programList.innerHTML = "<p>Unable to load programs. Are you logged in?</p>";
             return;
         }
+        
 
         const activePrograms = programs.filter(p => p.status !== "Inactive");
 
@@ -48,8 +50,10 @@ document.addEventListener("DOMContentLoaded", async function () {
                 `;
             }).join("");
         } else {
+            programList.classList.add("empty");
             programList.innerHTML = "<p>No programs available.</p>";
         }
+        
     } catch (error) {
         console.error("❌ Error fetching programs:", error);
         programList.innerHTML = "<p>Error loading programs.</p>";
