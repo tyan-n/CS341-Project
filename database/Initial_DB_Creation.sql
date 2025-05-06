@@ -88,10 +88,7 @@ CREATE TABLE IF NOT EXISTS Register ( --relationship between member/nonmember an
     FOREIGN KEY (ClassID) REFERENCES Class(ClassID),
     FOREIGN KEY (MemID) REFERENCES Member(MemID),
     FOREIGN KEY (NonMemID) REFERENCES NonMember(NonMemID),
-	FOREIGN KEY (DepID) REFERENCES Dependent(DepID),
-    CHECK (MemID IS NOT NULL AND NonMemID IS NULL AND DepID IS NULL OR 
-	       MemID IS NULL AND NonMemID IS NOT NULL AND DepID IS NULL OR
-		   MemID IS NULL AND NonMemID IS NULL AND DepID IS NOT NULL)
+    CHECK (MemID IS NOT NULL AND NonMemID IS NULL OR MemID IS NULL AND NonMemID IS NOT NULL)
 );
 
 CREATE TABLE IF NOT EXISTS HeldIn ( --relationship between class and room
@@ -111,16 +108,10 @@ CREATE TABLE IF NOT EXISTS Teach ( --relationship between employee and class
 );
 
 CREATE TABLE FamilyAccount (
-    FamilyID       INTEGER PRIMARY KEY AUTOINCREMENT,
-    FamilyName     TEXT NOT NULL,
-    OwnerMemID     INTEGER,
-    OwnerNonMemID  INTEGER,
-    FOREIGN KEY (OwnerMemID) REFERENCES Member(MemID),
-    FOREIGN KEY (OwnerNonMemID) REFERENCES NonMember(NonMemID),
-    CHECK (
-        (OwnerMemID IS NOT NULL AND OwnerNonMemID IS NULL) OR
-        (OwnerMemID IS NULL AND OwnerNonMemID IS NOT NULL)
-    )
+    FamilyID INTEGER PRIMARY KEY AUTOINCREMENT,
+    FamilyName TEXT NOT NULL,
+    FamilyOwnerID INTEGER NOT NULL,
+    FOREIGN KEY (FamilyOwnerID) REFERENCES Member(MemID)
 );
 
 CREATE TABLE FamilyMember (
