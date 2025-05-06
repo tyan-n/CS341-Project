@@ -77,6 +77,26 @@
         </form>
       </div>
 
+      <!-- Add Dependent -->
+      <div id="add-dependent-section">
+        <h3>👶 Add Dependent (No Login)</h3>
+        <form id="add-dependent-form">
+          <input type="text" id="dep-fname" placeholder="First Name" required />
+          <input type="text" id="dep-mname" placeholder="Middle Name (optional)" />
+          <input type="text" id="dep-lname" placeholder="Last Name" required />
+          <input type="date" id="dep-birthday" required />
+          <button type="submit" class="success-button">Add Dependent</button>
+        </form>
+      </div>
+
+      <!-- Dependents List -->
+      <div id="dependent-list-container">
+        <h3>🧒 Dependents</h3>
+        <ul id="dependent-list" class="member-list">
+          <!-- JS will populate here -->
+        </ul>
+      </div>
+
       <!-- Delete Family -->
       <div id="delete-family-section" style="display: none;">
         <h3>❌ Delete Entire Family</h3>

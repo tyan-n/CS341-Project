@@ -1094,6 +1094,97 @@ app.delete("/api/family/delete/:id", authenticateToken, (req, res) => {
   });
 });
 
+// 6. Add a dependent (non-user) to the family
+app.post("/api/family/add-dependent", authenticateToken, (req, res) => {
+  const email = req.user.email;
+  const { fName, lName, mName, birthday } = req.body;
+
+  if (!fName || !lName || !birthday) {
+    return res.status(400).json({ error: "Missing required dependent fields." });
+  }
+
+  const lookup = `
+  SELECT m.MemID, fm.FamilyID
+  FROM Member m
+  JOIN FamilyMember fm ON m.MemID = fm.MemID
+  WHERE m.Email = ?
+  `;
+  db.get(lookup, [email], (err, member) => {
+    if (err || !member || !member.FamilyID) {
+      return res.status(400).json({ error: "You must be in a family to add a dependent." });
+    }
+
+    const insertQuery = `
+      INSERT INTO Dependent (FName, LName, MName, Birthday, ParentMemID, FamilyID)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `;
+    db.run(insertQuery, [
+      fName,
+      lName,
+      mName || null,
+      birthday,
+      member.MemID,
+      member.FamilyID
+    ], function (err) {
+      if (err) {
+        console.error("Dependent insert failed:", err);
+        return res.status(500).json({ error: "Failed to add dependent." });
+      }
+      res.json({ message: "Dependent added successfully", depID: this.lastID });
+    });
+  });
+});
+
+// 7. Get dependents in the family
+app.get("/api/family/dependents", authenticateToken, (req, res) => {
+  const email = req.user.email;
+
+    const sql = `
+    SELECT m.MemID, fm.FamilyID
+    FROM Member m
+    JOIN FamilyMember fm ON m.MemID = fm.MemID
+    WHERE m.Email = ?
+  `;
+  db.get(sql, [email], (err, member) => {
+    if (err || !member || !member.FamilyID) {
+      return res.status(400).json({ error: "Not in a family." });
+    }
+
+    db.all(`
+      SELECT DepID, FName, LName, MName, Birthday
+      FROM Dependent
+      WHERE FamilyID = ?
+     `, [member.FamilyID], (err, dependents) => {
+      if (err) return res.status(500).json({ error: "Failed to fetch dependents." });
+      res.json({ dependents });
+    });
+  });
+});
+
+// 8. Remove a dependent (owner only)
+app.delete("/api/family/remove-dependent/:id", authenticateToken, (req, res) => {
+  const email = req.user.email;
+  const depID = req.params.id;
+
+  const query = `
+    SELECT m.MemID, fa.FamilyID
+    FROM Member m
+    JOIN FamilyAccount fa ON fa.FamilyOwnerID = m.MemID
+    WHERE m.Email = ?
+  `;
+
+  db.get(query, [email], (err, owner) => {
+    if (err || !owner) return res.status(403).json({ error: "Unauthorized" });
+
+    db.run("DELETE FROM Dependent WHERE DepID = ? AND FamilyID = ?", [depID, owner.FamilyID], function (err) {
+      if (err || this.changes === 0) {
+        return res.status(500).json({ error: "Failed to remove dependent." });
+      }
+      res.json({ message: "Dependent removed" });
+    });
+  });
+});
+
 /* ----------------------------------------
     Cancelled Class Notifications
  ---------------------------------------- */

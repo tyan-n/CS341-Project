@@ -114,9 +114,61 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
 
       memberList.appendChild(li);
+      
     });
 
+    // Now fetch and render dependents right after rendering members
+    const depList = document.getElementById("dependent-list");
+
+    fetch("http://localhost:5000/api/family/dependents", {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(depData => {
+        if (!Array.isArray(depData.dependents)) return;
+
+        depList.innerHTML = ""; // Clear previous list
+        depData.dependents.forEach(dep => {
+          const li = document.createElement("li");
+          const fullName = `${dep.FName} ${dep.MName || ""} ${dep.LName}`.replace(/\s+/g, " ");
+          li.textContent = `${fullName} (DOB: ${dep.Birthday})`;
+
+          if (isOwner) {
+            const removeBtn = document.createElement("button");
+            removeBtn.textContent = "Remove";
+            removeBtn.className = "danger-button";
+            removeBtn.onclick = async () => {
+              const confirmed = await confirmModal("Remove this dependent?");
+              if (!confirmed) return;
+
+              try {
+                const del = await fetch(`http://localhost:5000/api/family/remove-dependent/${dep.DepID}`, {
+                  method: "DELETE",
+                  headers: { Authorization: `Bearer ${token}` }
+                });
+                if (del.ok) {
+                  li.remove();
+                  await showModal("Dependent removed.");
+                } else {
+                  await showModal("Failed to remove dependent.");
+                }
+              } catch (err) {
+                console.error("Error:", err);
+                await showModal("Server error while removing dependent.");
+              }
+            };
+            li.appendChild(removeBtn);
+          }
+
+          depList.appendChild(li);
+        });
+      })
+      .catch(err => {
+        console.error("Error loading dependents:", err);
+      });
+
     if (isOwner) {
+
       // Show add member form.
       addSection.style.display = "block";
 
@@ -180,5 +232,43 @@ document.addEventListener("DOMContentLoaded", async () => {
   } catch (err) {
     msg.textContent = "Unable to load family account info.";
     console.error("Fetch error:", err);
+  }
+});
+
+document.getElementById("add-dependent-form").addEventListener("submit", async e => {
+  e.preventDefault();
+
+  const fName = document.getElementById("dep-fname").value.trim();
+  const mName = document.getElementById("dep-mname").value.trim();
+  const lName = document.getElementById("dep-lname").value.trim();
+  const birthday = document.getElementById("dep-birthday").value.trim();
+
+  const token = localStorage.getItem("token");
+
+  if (!fName || !lName || !birthday) {
+    await showModal("All required fields must be filled.");
+    return;
+  }
+
+  try {
+    const res = await fetch("http://localhost:5000/api/family/add-dependent", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ fName, lName, mName, birthday })
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+       await showModal("Dependent added successfully.");
+      window.location.reload();
+    } else {
+      await showModal(data.error || "Failed to add dependent.");
+    }
+  } catch (err) {
+    console.error("Add dependent error:", err);
+    await showModal("Server error. Try again.");
   }
 });
