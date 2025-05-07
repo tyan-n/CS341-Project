@@ -1656,3 +1656,41 @@ app.post("/api/staff/teaching/:id", authenticateToken, (req, res) => {
   });
 });
 
+//Staff Deletes Teaching Assignment
+app.delete("/api/staff/teaching/:id", authenticateToken, (req, res) => {
+  if (req.user.role !== "staff") {
+    return res.status(403).json({ error: "Only staff can unassign classes." });
+  }
+  const classId   = req.params.id;
+  const userEmail = req.user.email;
+
+  // Find this staff’s EmpID
+  const findEmp = `
+    SELECT EmpID FROM Employee
+    WHERE MemID = (
+      SELECT MemID FROM Member WHERE LOWER(Email)=LOWER(?)
+    )`;
+  db.get(findEmp, [userEmail], (err, row) => {
+    if (err || !row) {
+      return res.status(500).json({ error: "Could not find staff account" });
+    }
+    const empId = row.EmpID;
+
+    // Delete from Teach
+    db.run(
+      "DELETE FROM Teach WHERE ClassID = ? AND EmpID = ?",
+      [classId, empId],
+      function(err) {
+        if (err) {
+          console.error("Teach delete failed:", err);
+          return res.status(500).json({ error: "Unassign failed." });
+        }
+        if (this.changes === 0) {
+          return res.status(404).json({ error: "Assignment not found." });
+        }
+        res.json({ message: "Unassigned successfully." });
+      }
+    );
+  });
+});
+

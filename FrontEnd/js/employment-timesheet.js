@@ -5,7 +5,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
-  const noClassesMsg = document.getElementById("no-programs-message");
+  const noTeachMsg    = document.getElementById("no-teaching-message");
+  const noClassesMsg  = document.getElementById("no-programs-message");
   const calendarGrid = document.getElementById("calendar-grid");
   const currentWeekRangeSpan = document.getElementById("current-week-range");
   const prevWeekBtn = document.getElementById("prev-week");
@@ -91,15 +92,27 @@ document.addEventListener("DOMContentLoaded", async () => {
     const res = await fetch("http://localhost:5000/api/staff/teaching", {
       headers: { Authorization: `Bearer ${token}` }
     });
-    teachingAssignments = await res.json();
+    const raw = await res.json();
+    teachingAssignments = raw.map(c => ({
+       id:          c.id,
+       name:        c.name,
+       description: c.Description,
+       startDate:   c.StartDate,
+       endDate:     c.EndDate,
+       startTime:   c.StartTime,
+       endTime:     c.EndTime,
+       location:    c.location,
+       days:        c.days
+     }));
+
     if (!Array.isArray(teachingAssignments) || teachingAssignments.length === 0) {
-      noClassesMsg.textContent = "You are not assigned to any classes.";
-      return;
+      noTeachMsg.textContent = "You are not assigned to any classes.";
+    } else {
+      renderClasses();
     }
   } catch (err) {
     console.error("Fetch error:", err);
-    noClassesMsg.textContent = "Error loading your teaching schedule.";
-    return;
+    noTeachMsg.textContent = "Error loading your teaching schedule.";
   }
 
   function expandTeaching(assignments) {
@@ -113,8 +126,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const weekday = d.toLocaleDateString("en-US", { weekday: "long" });
         if (days.includes(weekday)) {
           result.push({
-            ...cls,
-            occurrenceDate: getLocalDateString(new Date(d))
+            ...cls, occurrenceDate: getLocalDateString(new Date(d))
           });
         }
       }
@@ -122,9 +134,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     return result;
   }
 
-  const expandedTeaching = expandTeaching(teachingAssignments);
-
   function renderClasses() {
+    const expandedTeaching = expandTeaching(teachingAssignments);
     document.querySelectorAll(".day-column").forEach(col => {
       while (col.childNodes.length > 1) col.removeChild(col.lastChild);
     });
@@ -191,7 +202,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const programs = await res.json();
 
       if (!Array.isArray(programs) || programs.length === 0) {
-        noProgramsEl.textContent = "No classes are currently available to teach.";
+        noClassesMsg.textContent = "No classes are currently available to teach.";
         return;
       }
 
@@ -218,9 +229,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  async function registerToTeach(classId, cardEl) {
+  async function registerToTeach(program, cardEl) {
     try {
-      const resp = await fetch(`http://localhost:5000/api/staff/teaching/${classId}`, {
+      const resp = await fetch(`http://localhost:5000/api/staff/teaching/${program.id}`, {
         method: "POST", headers: { Authorization: `Bearer ${token}` }
       });
       if (resp.ok) {
@@ -237,9 +248,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       alert("Error assigning you to teach.");
     }
   }
-
-  renderClasses();
-  loadPrograms();
 
   // Modal helpers
   function showNotificationModal(msg) {
@@ -271,4 +279,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     newC.addEventListener("click", () => { onConfirm(); m.style.display = "none"; });
     newX.addEventListener("click", () => m.style.display = "none");
   }
+
+  renderClasses();
+  loadPrograms();
+
 });

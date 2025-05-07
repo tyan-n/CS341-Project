@@ -67,7 +67,6 @@
       border-left: 1px solid #ddd;
       background-color: #fff;
       padding-top: 30px; /* reserve space for header */
-      /* If you feel that the columns drop dramatically, you might want to adjust this min-height value */
       min-height: 900px;
     }
     .day-column:first-child {
@@ -182,7 +181,7 @@
       <span id="current-week-range"></span>
       <button id="next-week">Next Week →</button>
     </div>
-
+      <p id="no-teaching-message" class="message"></p>
     <div class="calendar-container">
       <div class="time-column" id="time-column">
         <!-- Time labels will be dynamically generated -->
