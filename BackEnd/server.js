@@ -1076,37 +1076,48 @@ app.delete("/api/family/remove/:username", authenticateToken, (req, res) => {
 // 5. Delete the entire family (owner only)
 app.delete("/api/family/delete/:id", authenticateToken, (req, res) => {
   const ownerEmail = req.user.email;
-  const familyID = parseInt(req.params.id, 10); // ensure number
+  const familyID = parseInt(req.params.id, 10);
 
   db.get("SELECT MemID FROM Member WHERE Email = ?", [ownerEmail], (err, owner) => {
-      if (err || !owner) return res.status(400).json({ error: "Owner not found" });
+    if (err || !owner) return res.status(400).json({ error: "Owner not found" });
 
     db.get("SELECT * FROM FamilyAccount WHERE FamilyID = ? AND OwnerMemID = ?", [familyID, owner.MemID], (err, fam) => {
-          if (err || !fam) return res.status(403).json({ error: "Not authorized to delete this family" });
+      if (err || !fam) return res.status(403).json({ error: "Not authorized to delete this family" });
 
-      // Step 1: Delete all dependents
-      db.run("DELETE FROM Dependent WHERE FamilyID = ?", [familyID], function(err) {
-        if (err) {
-          console.error("Failed to delete dependents:", err);
-          return res.status(500).json({ error: "Failed to delete dependents" });
-        }
-        console.log(`Deleted ${this.changes} dependents`);
+      // Step 1: Remove dependent class registrations
+      const getDepsQuery = `SELECT DepID FROM Dependent WHERE FamilyID = ?`;
+      db.all(getDepsQuery, [familyID], (err, dependents) => {
+        if (err) return res.status(500).json({ error: "Failed to lookup dependents" });
 
-        // Step 2: Delete members
-        db.run("DELETE FROM FamilyMember WHERE FamilyID = ?", [familyID], function(err) {
-          if (err) {
-            console.error("Failed to delete members:", err);
-            return res.status(500).json({ error: "Failed to delete family members" });
-          }
+        const depIds = dependents.map(dep => dep.DepID);
+        if (depIds.length === 0) return proceedToDeleteFamily(); // Skip if no dependents
 
-          // Step 3: Delete account
-          db.run("DELETE FROM FamilyAccount WHERE FamilyID = ?", [familyID], function(err) {
-                  if (err) return res.status(500).json({ error: "Failed to delete family" });
-            res.json({ message: "Family and dependents deleted successfully." });
-          });
-              });
-          });
+        const placeholders = depIds.map(() => '?').join(',');
+        db.run(`DELETE FROM Register WHERE DepID IN (${placeholders})`, depIds, (err) => {
+          if (err) return res.status(500).json({ error: "Failed to remove dependent registrations" });
+          proceedToDeleteFamily(); // Continue if success
+        });
       });
+
+      function proceedToDeleteFamily() {
+        // Step 2: Delete dependents
+        db.run("DELETE FROM Dependent WHERE FamilyID = ?", [familyID], function(err) {
+          if (err) return res.status(500).json({ error: "Failed to delete dependents" });
+
+          // Step 3: Delete family members
+          db.run("DELETE FROM FamilyMember WHERE FamilyID = ?", [familyID], function(err) {
+            if (err) return res.status(500).json({ error: "Failed to delete family members" });
+
+            // Step 4: Delete the account
+            db.run("DELETE FROM FamilyAccount WHERE FamilyID = ?", [familyID], function(err) {
+              if (err) return res.status(500).json({ error: "Failed to delete family account" });
+
+              res.json({ message: "Family, members, dependents, and class registrations deleted successfully." });
+            });
+          });
+        });
+      }
+    });
   });
 });
 
@@ -1164,7 +1175,7 @@ app.post("/api/family/add-dependent", authenticateToken, (req, res) => {
 
       const depID = this.lastID;
 
-      // 🔧 Add to FamilyMember table
+      //  Add to FamilyMember table
       db.run("INSERT INTO FamilyMember (FamilyID, DepID) VALUES (?, ?)", [owner.FamilyID, depID], (err2) => {
         if (err2) {
           console.error("Failed to link dependent to FamilyMember:", err2);
@@ -1206,7 +1217,7 @@ app.get("/api/family/dependents", authenticateToken, (req, res) => {
 // 8. Remove a dependent (owner only)
 app.delete("/api/family/remove-dependent/:id", authenticateToken, (req, res) => {
   const email = req.user.email;
-  const depID = req.params.id;
+  const depID = parseInt(req.params.id, 10);
 
   const query = `
     SELECT m.MemID, fa.FamilyID
@@ -1218,11 +1229,23 @@ app.delete("/api/family/remove-dependent/:id", authenticateToken, (req, res) => 
   db.get(query, [email], (err, owner) => {
     if (err || !owner) return res.status(403).json({ error: "Unauthorized" });
 
-    db.run("DELETE FROM Dependent WHERE DepID = ? AND FamilyID = ?", [depID, owner.FamilyID], function (err) {
-      if (err || this.changes === 0) {
-        return res.status(500).json({ error: "Failed to remove dependent." });
-      }
-      res.json({ message: "Dependent removed" });
+    // Step 1: Remove from Register (if exists)
+    db.run("DELETE FROM Register WHERE DepID = ?", [depID], function(err) {
+      if (err) return res.status(500).json({ error: "Failed to remove registrations for dependent" });
+
+      // Step 2: Remove from FamilyMember
+      db.run("DELETE FROM FamilyMember WHERE FamilyID = ? AND DepID = ?", [owner.FamilyID, depID], function(err) {
+        if (err) return res.status(500).json({ error: "Failed to remove dependent from family" });
+
+        // Step 3: Remove from Dependent table
+        db.run("DELETE FROM Dependent WHERE DepID = ? AND FamilyID = ?", [depID, owner.FamilyID], function(err) {
+          if (err || this.changes === 0) {
+            return res.status(500).json({ error: "Failed to fully delete dependent" });
+          }
+
+          res.json({ message: "Dependent fully removed" });
+        });
+      });
     });
   });
 });

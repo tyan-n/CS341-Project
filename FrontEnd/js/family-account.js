@@ -4,17 +4,12 @@ function showModal(message) {
   const modalMessage = document.getElementById("modal-message");
   modalMessage.innerText = message;
 
-  // Remove existing modal-ok buttons
+  // Remove old buttons
   modal.querySelectorAll("button.modal-ok").forEach(btn => btn.remove());
 
-  // Create new OK button
   const okBtn = document.createElement("button");
   okBtn.innerText = "OK";
   okBtn.className = "ymca-button modal-ok";
-  okBtn.onclick = () => {
-    modal.style.display = "none";
-    resolve(true);
-  };
 
   modal.querySelector(".modal-content").appendChild(okBtn);
   modal.style.display = "block";
@@ -27,14 +22,14 @@ function showModal(message) {
   });
 }
 
-// Helper to show a confirmation modal with Yes and No buttons.
+// Helper to show a confirmation modal
 function confirmModal(message) {
   const modal = document.getElementById("modal");
   const modalMessage = document.getElementById("modal-message");
   modalMessage.innerText = message;
 
-  // Remove existing confirmation buttons
-  modal.querySelectorAll("button.modal-confirm").forEach(btn => btn.remove());
+  //  Clear ALL buttons 
+  modal.querySelectorAll("button").forEach(btn => btn.remove());
 
   const yesBtn = document.createElement("button");
   yesBtn.innerText = "Yes";
@@ -59,39 +54,6 @@ function confirmModal(message) {
       modal.style.display = "none";
       resolve(false);
     };
-  });
-}
-
-// Helper to show a confirmation modal with Yes and No buttons.
-function confirmModal(message) {
-  const modal = document.getElementById("modal");
-  const modalMessage = document.getElementById("modal-message");
-  // Clear any existing confirmation buttons.
-  const existingBtns = modal.querySelectorAll("button.modal-confirm");
-  existingBtns.forEach(btn => btn.remove());
-  modalMessage.innerText = message;
-  modal.style.display = "block";
-  return new Promise((resolve) => {
-    const modalContent = modal.querySelector(".modal-content");
-
-    const yesBtn = document.createElement("button");
-    yesBtn.innerText = "Yes";
-    yesBtn.className = "ymca-button modal-confirm";
-    yesBtn.onclick = () => {
-      modal.style.display = "none";
-      resolve(true);
-    };
-
-    const noBtn = document.createElement("button");
-    noBtn.innerText = "No";
-    noBtn.className = "danger-button modal-confirm";
-    noBtn.onclick = () => {
-      modal.style.display = "none";
-      resolve(false);
-    };
-
-    modalContent.appendChild(yesBtn);
-    modalContent.appendChild(noBtn);
   });
 }
 
@@ -180,17 +142,24 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     depList.innerHTML = "";
     depData.dependents.forEach(dep => {
-      const li = document.createElement("li");
       const fullName = `${dep.FName} ${dep.MName || ""} ${dep.LName}`.replace(/\s+/g, " ");
-      li.textContent = `${fullName} (DOB: ${dep.Birthday})`;
-
-      // Show registered classes
+      
+      const depCard = document.createElement("div");
+      depCard.className = "dependent-card";
+    
+      // Header
+      const depHeader = document.createElement("div");
+      depHeader.className = "dependent-header";
+      depHeader.textContent = `${fullName} (DOB: ${dep.Birthday})`;
+      depCard.appendChild(depHeader);
+    
+      // Registered Classes
       const classList = document.createElement("ul");
-      classList.className = "registered-classes";
+      classList.className = "class-list";
       const header = document.createElement("li");
       header.innerHTML = "<strong>Registered Classes:</strong>";
       classList.appendChild(header);
-      
+    
       fetch(`http://localhost:5000/api/family/dependent/classes/${dep.DepID}`, {
         headers: { Authorization: `Bearer ${token}` }
       })
@@ -214,41 +183,40 @@ document.addEventListener("DOMContentLoaded", async () => {
           classList.appendChild(item);
           console.error("Fetch dependent class list error:", err);
         });
-
-      li.appendChild(classList);
-
+    
+      depCard.appendChild(classList);
+    
       if (isOwner) {
-        // Remove dependent button
+        // Remove button
         const removeBtn = document.createElement("button");
         removeBtn.textContent = "Remove";
         removeBtn.className = "danger-button";
         removeBtn.onclick = async () => {
           const confirmed = await confirmModal("Remove this dependent?");
           if (!confirmed) return;
-
+    
           try {
             const del = await fetch(`http://localhost:5000/api/family/remove-dependent/${dep.DepID}`, {
               method: "DELETE",
               headers: { Authorization: `Bearer ${token}` }
             });
             if (del.ok) {
-              li.remove();
+              depCard.remove();
               await showModal("Dependent removed.");
             } else {
               await showModal("Failed to remove dependent.");
             }
           } catch (err) {
-            console.error("Error:", err);
+            console.error("Remove error:", err);
             await showModal("Server error while removing dependent.");
           }
         };
-        li.appendChild(removeBtn);
-
-        // Class dropdown
+    
+        // Dropdown
         const classSelect = document.createElement("select");
         classSelect.className = "class-dropdown";
         classSelect.innerHTML = `<option value="">-- Select Class --</option>`;
-
+    
         fetch("http://localhost:5000/api/programs", {
           headers: { Authorization: `Bearer ${token}` }
         })
@@ -261,8 +229,8 @@ document.addEventListener("DOMContentLoaded", async () => {
               classSelect.appendChild(opt);
             });
           });
-
-        // Register button
+    
+        // Register Button
         const registerBtn = document.createElement("button");
         registerBtn.textContent = "Register";
         registerBtn.className = "success-button";
@@ -271,7 +239,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           if (!selectedClassId) return await showModal("Please select a class.");
           const confirmed = await confirmModal("Register this dependent for the selected class?");
           if (!confirmed) return;
-
+    
           try {
             const res = await fetch(`http://localhost:5000/api/family/dependent/register/${dep.DepID}/${selectedClassId}`, {
               method: "POST",
@@ -280,25 +248,26 @@ document.addEventListener("DOMContentLoaded", async () => {
             const result = await res.json();
             if (res.ok) {
               await showModal("Dependent successfully registered.");
+              window.location.reload();
             } else {
               await showModal(result.error || "Failed to register dependent.");
             }
           } catch (err) {
-            console.error("Registration error:", err);
+            console.error("Register error:", err);
             await showModal("Error registering dependent.");
           }
         };
-
-        // Unregister button
+    
+        // Unregister Button
         const unregisterBtn = document.createElement("button");
         unregisterBtn.textContent = "Unregister";
         unregisterBtn.className = "danger-button";
         unregisterBtn.onclick = async () => {
           const selectedClassId = classSelect.value;
           if (!selectedClassId) return await showModal("Please select a class to remove.");
-          const confirmed = await confirmModal("Remove this dependent from the selected class?");
+          const confirmed = await confirmModal("Unregister this dependent from the selected class?");
           if (!confirmed) return;
-
+    
           try {
             const res = await fetch(`http://localhost:5000/api/family/dependent/register/${dep.DepID}/${selectedClassId}`, {
               method: "DELETE",
@@ -307,6 +276,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             const result = await res.json();
             if (res.ok) {
               await showModal("Dependent successfully unregistered.");
+              window.location.reload();
             } else {
               await showModal(result.error || "Failed to unregister dependent.");
             }
@@ -315,16 +285,21 @@ document.addEventListener("DOMContentLoaded", async () => {
             await showModal("Error removing registration.");
           }
         };
+    
+        // Wrap controls
+        const controlWrapper = document.createElement("div");
+        controlWrapper.className = "class-controls";
+        controlWrapper.appendChild(classSelect);
+        controlWrapper.appendChild(registerBtn);
+        controlWrapper.appendChild(unregisterBtn);
+        controlWrapper.appendChild(removeBtn);
 
-        li.appendChild(document.createElement("br"));
-        li.appendChild(classSelect);
-        li.appendChild(registerBtn);
-        li.appendChild(unregisterBtn);
+        depCard.appendChild(controlWrapper);
       }
-
-      depList.appendChild(li);
+    
+      depList.appendChild(depCard);
     });
-
+    
     // Show add member form (owner only)
     if (isOwner) {
       addSection.style.display = "block";
