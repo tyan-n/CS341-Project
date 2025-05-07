@@ -7,28 +7,190 @@
   <link rel="stylesheet" href="../css/styles.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
+  <style>
+
+   /* Week Navigation Controls */
+    .week-nav {
+      text-align: center;
+      margin: 10px 0;
+    }
+    .week-nav button {
+      padding: 8px 12px;
+      margin: 0 10px;
+      background-color: #0077cc;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .week-nav button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+    
+    /* Container for time column and calendar grid */
+    .calendar-container {
+      display: flex;
+      max-width: 1000px;
+      margin: 20px auto;
+    }
+
+    /* Time Column Styles */
+    .time-column {
+      width: 60px;
+      position: relative;
+      border-right: 1px solid #ddd;
+      background-color: #fff;
+    }
+    .time-label {
+      position: absolute;
+      right: 5px;
+      font-size: 10px;
+      color: #666;
+    }
+    
+    /* Calendar grid for one week */
+    .calendar-grid {
+      flex: 1;
+      display: flex;
+      overflow-x: auto;
+      border: 1px solid #ddd;
+      background-color: #f9f9f9;
+      border-radius: 8px;
+    }
+
+    /* Each day column */
+    .day-column {
+      flex: 1;
+      min-width: 120px;
+      position: relative;
+      border-left: 1px solid #ddd;
+      background-color: #fff;
+      padding-top: 30px; /* reserve space for header */
+      /* If you feel that the columns drop dramatically, you might want to adjust this min-height value */
+      min-height: 900px;
+    }
+    .day-column:first-child {
+      border-left: none;
+    }
+    .day-column h3 {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      margin: 0;
+      padding: 5px;
+      background-color: #0077cc;
+      color: #fff;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    /* Class entry styling */
+    .class-entry {
+      position: absolute;
+      left: 5px;
+      right: 5px;
+      background-color: #e6f7ff;
+      border: 1px solid #91d5ff;
+      border-radius: 4px;
+      padding: 2px 4px;
+      font-size: 11px;
+      color: #333;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+    .class-entry button {
+      margin-top: 4px;
+      background-color: #ff4d4f;
+      border: none;
+      color: #fff;
+      padding: 2px 4px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 10px;
+    }
+    .class-entry button:hover {
+      background-color: #d9363e;
+    }
+
+  /* Modal Styles */
+  .modal {
+    display: none; /* Hidden by default */
+    position: fixed;
+    z-index: 9999;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+  }
+
+  .modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 300px;
+    text-align: center;
+    border-radius: 8px;
+    animation: fadeIn 0.3s ease-in-out;
+  }
+
+  .close-button {
+    color: #aaa;
+    float: right;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  .close-button:hover,
+  .close-button:focus {
+    color: black;
+  }
+
+  .modal-login-button {
+    padding: 10px 20px;
+    margin-top: 15px;
+    font-size: 16px;
+    border: none;
+    border-radius: 5px;
+    background-color: #0077cc;
+    color: white;
+    cursor: pointer;
+  }
+
+  .modal-login-button:hover {
+    background-color: #005fa3;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  </style>
 <body>
   <script src="../js/navbar.js"></script>
 
   <main class="my-classes-container">
     <h2>🧑‍🏫 Your Teaching Schedule</h2>
 
-    <!-- Time Grid -->
-    <div class="calendar-grid">
-      <div class="time-column">
-        <div>06:00</div><div>07:00</div><div>08:00</div><div>09:00</div>
-        <div>10:00</div><div>11:00</div><div>12:00</div><div>13:00</div>
-        <div>14:00</div><div>15:00</div><div>16:00</div><div>17:00</div>
-        <div>18:00</div><div>19:00</div><div>20:00</div>
-      </div>
-      <div class="day-column" data-day="Monday"><h3>Monday</h3></div>
-      <div class="day-column" data-day="Tuesday"><h3>Tuesday</h3></div>
-      <div class="day-column" data-day="Wednesday"><h3>Wednesday</h3></div>
-      <div class="day-column" data-day="Thursday"><h3>Thursday</h3></div>
-      <div class="day-column" data-day="Friday"><h3>Friday</h3></div>
-      <div class="day-column" data-day="Saturday"><h3>Saturday</h3></div>
-      <div class="day-column" data-day="Sunday"><h3>Sunday</h3></div>
+    <div class="week-nav">
+      <button id="prev-week">← Prev Week</button>
+      <span id="current-week-range"></span>
+      <button id="next-week">Next Week →</button>
     </div>
+
+    <div class="calendar-container">
+      <div class="time-column" id="time-column">
+        <!-- Time labels will be dynamically generated -->
+      </div>
+      <div class="calendar-grid" id="calendar-grid">
+        <!-- Day columns will be dynamically inserted -->
+      </div>
+     </div>
 
     <h3 style="margin-top: 2rem;">📚 Available Programs to Teach</h3>
     <div id="program-list" class="program-list"></div>
@@ -41,5 +203,22 @@
   </footer>
 
   <script src="../js/employment-timesheet.js"></script>
+
+  <!-- Confirm Modal -->
+  <div id="confirm-modal" class="modal">
+    <div class="modal-content">
+      <p id="confirm-modal-message"></p>
+      <button id="confirm-modal-confirm" class="ymca-button">Confirm</button>
+      <button id="confirm-modal-cancel" class="ymca-button danger-button">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Notification Modal -->
+  <div id="notification-modal" class="modal">
+    <div class="modal-content">
+      <span id="notification-modal-close" class="close-button">&times;</span>
+      <p id="notification-modal-message"></p>
+    </div>
+  </div>
 </body>
 </html>

@@ -1518,3 +1518,111 @@ app.get("/api/classes/:id/roster", authenticateToken, (req, res) => {
 });
 
 app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
+
+//Staff's Employment Timetable
+app.get("/api/staff/teaching", authenticateToken, (req, res) => {
+  const email = req.user.email;
+
+  const sql = `
+    SELECT 
+      c.ClassID AS id,
+      c.ClassName AS name,
+      c.Description,
+      c.StartDate,
+      c.EndDate,
+      c.StartTime,
+      c.EndTime,
+      c.RoomNumber AS location,
+      GROUP_CONCAT(cd.DayOfWeek) AS days
+    FROM Teach t
+    JOIN Employee e ON t.EmpID = e.EmpID
+    JOIN Member m ON e.MemID = m.MemID
+    JOIN Class c ON c.ClassID = t.ClassID
+    LEFT JOIN ClassDays cd ON cd.ClassID = c.ClassID
+    WHERE LOWER(m.Email) = LOWER(?)
+    GROUP BY c.ClassID
+  `;
+
+  db.all(sql, [email], (err, rows) => {
+    if (err) {
+      console.error("❌ Failed to fetch teaching assignments:", err);
+      return res.status(500).json({ error: "Could not load teaching schedule." });
+    }
+    res.json(rows);
+  });
+});
+
+//Staff register to teach class
+app.post("/api/staff/teaching/:id", authenticateToken, (req, res) => {
+  if (req.user.role !== "staff") {
+    return res.status(403).json({ error: "Access denied. Staff only." });
+  }
+
+  const classId = req.params.id;
+  const staffEmail = req.user.email;
+
+  const findEmpSql = `
+    SELECT EmpID
+    FROM Employee
+    WHERE MemID = (SELECT MemID FROM Member WHERE LOWER(Email) = LOWER(?))
+  `;
+
+
+  db.get(findEmpSql, [staffEmail], (err, employee) => {
+    if (err || !employee) {
+      console.error("Error finding employee:", err);
+      return res.status(500).json({ error: "Could not find matching staff account." });
+    }
+
+    const empId = employee.EmpID;
+
+    const getClassDetails = `
+      SELECT StartDate, EndDate, StartTime, EndTime
+      FROM Class
+      WHERE ClassID = ?
+    `;
+    db.get(getClassDetails, [classId], (err, newClass) => {
+      if (err || !newClass) {
+        return res.status(500).json({ error: "Class not found." });
+      }
+
+      const getCurrentAssignments = `
+        SELECT c.StartDate, c.EndDate, c.StartTime, c.EndTime
+        FROM Teach t
+        JOIN Class c ON t.ClassID = c.ClassID
+        WHERE t.EmpID = ?
+      `;
+      db.all(getCurrentAssignments, [empId], (err, assignedClasses) => {
+        if (err) {
+          console.error("Error checking conflicts:", err);
+          return res.status(500).json({ error: "Conflict check failed." });
+        }
+
+        const newStart = new Date(`${newClass.StartDate}T${newClass.StartTime}`);
+        const newEnd = new Date(`${newClass.EndDate}T${newClass.EndTime}`);
+
+        const hasConflict = assignedClasses.some(cls => {
+          const clsStart = new Date(`${cls.StartDate}T${cls.StartTime}`);
+          const clsEnd = new Date(`${cls.EndDate}T${cls.EndTime}`);
+          return newStart < clsEnd && clsStart < newEnd;
+        });
+
+        if (hasConflict) {
+          return res.status(400).json({ error: "You already teach another class during this time." });
+        }
+
+        // Insert into Teach table
+        const insertTeach = "INSERT INTO Teach (ClassID, EmpID) VALUES (?, ?)";
+        db.run(insertTeach, [classId, empId], function (err) {
+          if (err) {
+            console.error("Teach insert failed:", err);
+            return res.status(500).json({ error: "Assignment failed." });
+          }
+
+          res.json({ message: "Class assigned to you.", classId });
+        });
+      });
+    });
+  });
+});
+
