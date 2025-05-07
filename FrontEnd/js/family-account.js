@@ -168,7 +168,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           if (Array.isArray(data.classes) && data.classes.length > 0) {
             data.classes.forEach(cls => {
               const item = document.createElement("li");
-              item.textContent = `${cls.ClassName} (${cls.StartDate} – ${cls.EndDate})`;
+              item.textContent = `${cls.ClassName} (${cls.StartDate} – ${cls.EndDate}, ${cls.Days || 'No days'}, ${cls.StartTime}–${cls.EndTime})`;
               classList.appendChild(item);
             });
           } else {

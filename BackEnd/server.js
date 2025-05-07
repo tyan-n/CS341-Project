@@ -1353,7 +1353,6 @@ app.get("/api/family/dependent/classes/:depId", authenticateToken, (req, res) =>
 
   if (isNaN(depId)) return res.status(400).json({ error: "Invalid Dependent ID." });
 
-  // Confirm request comes from the family owner
   const ownerQuery = `
     SELECT fa.FamilyID
     FROM Member m
@@ -1368,10 +1367,18 @@ app.get("/api/family/dependent/classes/:depId", authenticateToken, (req, res) =>
       if (err || !dep) return res.status(404).json({ error: "Dependent not found in your family." });
 
       const query = `
-        SELECT c.ClassName, c.StartDate, c.EndDate
+        SELECT 
+          c.ClassName, 
+          c.StartDate, 
+          c.EndDate, 
+          c.StartTime, 
+          c.EndTime,
+          GROUP_CONCAT(cd.DayOfWeek, ', ') AS Days
         FROM Register r
         JOIN Class c ON r.ClassID = c.ClassID
+        LEFT JOIN ClassDays cd ON c.ClassID = cd.ClassID
         WHERE r.DepID = ?
+        GROUP BY c.ClassID
       `;
 
       db.all(query, [depId], (err, classes) => {
