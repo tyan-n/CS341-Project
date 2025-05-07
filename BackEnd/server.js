@@ -953,7 +953,7 @@ app.post("/api/family/create", authenticateToken, (req, res) => {
     const memID = member.MemID;
     const familyName = `${email.split("@")[0]}'s Family`;
 
-    db.run("INSERT INTO FamilyAccount (FamilyName, FamilyOwnerID) VALUES (?, ?)", [familyName, memID], function (err) {
+    db.run("INSERT INTO FamilyAccount (FamilyName, OwnerMemID) VALUES (?, ?)", [familyName, memID], function (err) {
       if (err) {
         return res.status(500).json({ modal: true, error: "Failed to create family" });
       }
@@ -979,7 +979,7 @@ app.get("/api/account/family-status", authenticateToken, (req, res) => {
       const memID = member.MemID;
 
       const findFamilyQuery = `
-          SELECT f.FamilyID, f.FamilyName, f.FamilyOwnerID
+          SELECT f.FamilyID, f.FamilyName, f.OwnerMemID
           FROM FamilyAccount f
           JOIN FamilyMember fm ON f.FamilyID = fm.FamilyID
           WHERE fm.MemID = ?
@@ -988,7 +988,7 @@ app.get("/api/account/family-status", authenticateToken, (req, res) => {
       db.get(findFamilyQuery, [memID], (err, family) => {
           if (err || !family) return res.json({ inFamily: false });
 
-          const isOwner = family.FamilyOwnerID === memID;
+          const isOwner = family.OwnerMemID === memID;
 
           const getMembersQuery = `
               SELECT m.Email AS email, m.MemID AS memID, m.FName || ' ' || m.LName AS fullName
@@ -1027,7 +1027,7 @@ app.post("/api/family/add", authenticateToken, (req, res) => {
   db.get("SELECT MemID FROM Member WHERE Email = ?", [ownerEmail], (err, owner) => {
       if (err || !owner) return res.status(400).json({ error: "Owner not found" });
 
-      db.get("SELECT FamilyID FROM FamilyAccount WHERE FamilyOwnerID = ?", [owner.MemID], (err, family) => {
+      db.get("SELECT FamilyID FROM FamilyAccount WHERE OwnerMemID = ?", [owner.MemID], (err, family) => {
           if (err || !family) return res.status(400).json({ error: "Family not found" });
 
           db.get("SELECT MemID FROM Member WHERE Email = ?", [username], (err, newMem) => {
@@ -1050,7 +1050,7 @@ app.delete("/api/family/remove/:username", authenticateToken, (req, res) => {
   db.get("SELECT MemID FROM Member WHERE Email = ?", [ownerEmail], (err, owner) => {
       if (err || !owner) return res.status(400).json({ error: "Owner not found" });
 
-      db.get("SELECT FamilyID, FamilyOwnerID FROM FamilyAccount WHERE FamilyOwnerID = ?", [owner.MemID], (err, family) => {
+      db.get("SELECT FamilyID, OwnerMemID FROM FamilyAccount WHERE OwnerMemID = ?", [owner.MemID], (err, family) => {
           if (err || !family) return res.status(400).json({ error: "Not family owner" });
 
           db.get("SELECT MemID FROM Member WHERE Email = ?", [targetEmail], (err, member) => {
@@ -1076,18 +1076,34 @@ app.delete("/api/family/remove/:username", authenticateToken, (req, res) => {
 // 5. Delete the entire family (owner only)
 app.delete("/api/family/delete/:id", authenticateToken, (req, res) => {
   const ownerEmail = req.user.email;
-  const familyID = req.params.id;
+  const familyID = parseInt(req.params.id, 10); // ensure number
 
   db.get("SELECT MemID FROM Member WHERE Email = ?", [ownerEmail], (err, owner) => {
       if (err || !owner) return res.status(400).json({ error: "Owner not found" });
 
-      db.get("SELECT * FROM FamilyAccount WHERE FamilyID = ? AND FamilyOwnerID = ?", [familyID, owner.MemID], (err, fam) => {
+    db.get("SELECT * FROM FamilyAccount WHERE FamilyID = ? AND OwnerMemID = ?", [familyID, owner.MemID], (err, fam) => {
           if (err || !fam) return res.status(403).json({ error: "Not authorized to delete this family" });
 
-          db.run("DELETE FROM FamilyMember WHERE FamilyID = ?", [familyID], () => {
-              db.run("DELETE FROM FamilyAccount WHERE FamilyID = ?", [familyID], function (err) {
+      // Step 1: Delete all dependents
+      db.run("DELETE FROM Dependent WHERE FamilyID = ?", [familyID], function(err) {
+        if (err) {
+          console.error("Failed to delete dependents:", err);
+          return res.status(500).json({ error: "Failed to delete dependents" });
+        }
+        console.log(`Deleted ${this.changes} dependents`);
+
+        // Step 2: Delete members
+        db.run("DELETE FROM FamilyMember WHERE FamilyID = ?", [familyID], function(err) {
+          if (err) {
+            console.error("Failed to delete members:", err);
+            return res.status(500).json({ error: "Failed to delete family members" });
+          }
+
+          // Step 3: Delete account
+          db.run("DELETE FROM FamilyAccount WHERE FamilyID = ?", [familyID], function(err) {
                   if (err) return res.status(500).json({ error: "Failed to delete family" });
-                  res.json({ message: "Family deleted" });
+            res.json({ message: "Family and dependents deleted successfully." });
+          });
               });
           });
       });
@@ -1103,15 +1119,30 @@ app.post("/api/family/add-dependent", authenticateToken, (req, res) => {
     return res.status(400).json({ error: "Missing required dependent fields." });
   }
 
-  const lookup = `
-  SELECT m.MemID, fm.FamilyID
-  FROM Member m
-  JOIN FamilyMember fm ON m.MemID = fm.MemID
-  WHERE m.Email = ?
+  // Validate age
+  const birthDate = new Date(birthday);
+  const today = new Date();
+  if (birthDate > today) {
+    return res.status(400).json({ error: "Birthday cannot be in the future." });
+  }
+  const age = today.getFullYear() - birthDate.getFullYear();
+  const monthDelta = today.getMonth() - birthDate.getMonth();
+  const dayDelta = today.getDate() - birthDate.getDate();
+  const exactAge = monthDelta < 0 || (monthDelta === 0 && dayDelta < 0) ? age - 1 : age;
+  if (exactAge > 18) {
+    return res.status(400).json({ error: "Dependents must be 18 years old or younger." });
+  }
+
+  const query = `
+    SELECT m.MemID, fa.FamilyID
+    FROM Member m
+    JOIN FamilyAccount fa ON fa.OwnerMemID = m.MemID
+    WHERE m.Email = ?
   `;
-  db.get(lookup, [email], (err, member) => {
-    if (err || !member || !member.FamilyID) {
-      return res.status(400).json({ error: "You must be in a family to add a dependent." });
+
+  db.get(query, [email], (err, owner) => {
+    if (err || !owner || !owner.FamilyID) {
+      return res.status(403).json({ error: "Only family owner can add dependents." });
     }
 
     const insertQuery = `
@@ -1123,14 +1154,25 @@ app.post("/api/family/add-dependent", authenticateToken, (req, res) => {
       lName,
       mName || null,
       birthday,
-      member.MemID,
-      member.FamilyID
+      owner.MemID,
+      owner.FamilyID
     ], function (err) {
       if (err) {
         console.error("Dependent insert failed:", err);
         return res.status(500).json({ error: "Failed to add dependent." });
       }
-      res.json({ message: "Dependent added successfully", depID: this.lastID });
+
+      const depID = this.lastID;
+
+      // 🔧 Add to FamilyMember table
+      db.run("INSERT INTO FamilyMember (FamilyID, DepID) VALUES (?, ?)", [owner.FamilyID, depID], (err2) => {
+        if (err2) {
+          console.error("Failed to link dependent to FamilyMember:", err2);
+          return res.status(500).json({ error: "Dependent added, but FamilyMember link failed." });
+        }
+
+        res.json({ message: "Dependent added successfully", depID });
+      });
     });
   });
 });
@@ -1169,7 +1211,7 @@ app.delete("/api/family/remove-dependent/:id", authenticateToken, (req, res) => 
   const query = `
     SELECT m.MemID, fa.FamilyID
     FROM Member m
-    JOIN FamilyAccount fa ON fa.FamilyOwnerID = m.MemID
+    JOIN FamilyAccount fa ON fa.OwnerMemID = m.MemID
     WHERE m.Email = ?
   `;
 
@@ -1181,6 +1223,138 @@ app.delete("/api/family/remove-dependent/:id", authenticateToken, (req, res) => 
         return res.status(500).json({ error: "Failed to remove dependent." });
       }
       res.json({ message: "Dependent removed" });
+    });
+  });
+});
+
+// 9. Sign a dependent up for classes (owner only)
+app.post("/api/family/dependent/register/:depId/:classId", authenticateToken, (req, res) => {
+  const email = req.user.email;
+  const depId = parseInt(req.params.depId, 10);
+  const classId = parseInt(req.params.classId, 10);
+
+  if (isNaN(depId) || isNaN(classId)) {
+    return res.status(400).json({ error: "Invalid dependent or class ID." });
+  }
+
+  // Verify this user owns a family and is its owner
+  const ownerQuery = `
+    SELECT fa.FamilyID
+    FROM Member m
+    JOIN FamilyAccount fa ON fa.OwnerMemID = m.MemID
+    WHERE m.Email = ?
+  `;
+
+  db.get(ownerQuery, [email], (err, owner) => {
+    if (err || !owner) return res.status(403).json({ error: "Unauthorized to register dependent." });
+
+    // Confirm dependent belongs to that family
+    db.get("SELECT * FROM Dependent WHERE DepID = ? AND FamilyID = ?", [depId, owner.FamilyID], (err, dep) => {
+      if (err || !dep) return res.status(404).json({ error: "Dependent not found in your family." });
+
+      // Check for time conflicts
+      const newClassQuery = `SELECT StartDate, EndDate, StartTime, EndTime FROM Class WHERE ClassID = ?`;
+      db.get(newClassQuery, [classId], (err, newClass) => {
+        if (err || !newClass) return res.status(404).json({ error: "Class not found." });
+
+        const existingQuery = `
+          SELECT c.StartDate, c.EndDate, c.StartTime, c.EndTime
+          FROM Register r
+          JOIN Class c ON r.ClassID = c.ClassID
+          WHERE r.DepID = ?
+        `;
+        db.all(existingQuery, [depId], (err, registrations) => {
+          if (err) return res.status(500).json({ error: "Error checking class schedule." });
+
+          const isTimeConflict = registrations.some(reg => {
+            const aStart = new Date(`${newClass.StartDate}T${newClass.StartTime}`);
+            const aEnd = new Date(`${newClass.EndDate}T${newClass.EndTime}`);
+            const bStart = new Date(`${reg.StartDate}T${reg.StartTime}`);
+            const bEnd = new Date(`${reg.EndDate}T${reg.EndTime}`);
+            return aStart < bEnd && bStart < aEnd;
+          });
+
+          if (isTimeConflict) {
+            return res.status(400).json({ error: "Schedule conflict for dependent." });
+          }
+
+          // Register dependent
+          const insert = `INSERT INTO Register (DepID, ClassID) VALUES (?, ?)`;
+          db.run(insert, [depId, classId], function (err) {
+            if (err) return res.status(500).json({ error: "Failed to register dependent." });
+
+            db.run("UPDATE Class SET CurrCapacity = CurrCapacity + 1 WHERE ClassID = ?", [classId]);
+            res.json({ message: "Dependent registered for class." });
+          });
+        });
+      });
+    });
+  });
+});
+
+// 10. remove a dependent from a class
+app.delete("/api/family/dependent/register/:depId/:classId", authenticateToken, (req, res) => {
+  const email = req.user.email;
+  const depId = parseInt(req.params.depId, 10);
+  const classId = parseInt(req.params.classId, 10);
+
+  const ownerQuery = `
+    SELECT fa.FamilyID
+    FROM Member m
+    JOIN FamilyAccount fa ON fa.OwnerMemID = m.MemID
+    WHERE m.Email = ?
+  `;
+  db.get(ownerQuery, [email], (err, owner) => {
+    if (err || !owner) return res.status(403).json({ error: "Unauthorized" });
+
+    db.get("SELECT * FROM Dependent WHERE DepID = ? AND FamilyID = ?", [depId, owner.FamilyID], (err, dep) => {
+      if (err || !dep) return res.status(404).json({ error: "Dependent not found in your family." });
+
+      const del = `DELETE FROM Register WHERE DepID = ? AND ClassID = ?`;
+      db.run(del, [depId, classId], function (err) {
+        if (err || this.changes === 0) return res.status(500).json({ error: "Could not remove registration." });
+
+        db.run("UPDATE Class SET CurrCapacity = CurrCapacity - 1 WHERE ClassID = ?", [classId]);
+        // db.run(`INSERT INTO Cancelled (ClassID, MemID, NonMemID, DateCancelled, Notified)
+        //         VALUES (?, NULL, NULL, CURRENT_DATE, 0)`, [classId]);
+        res.json({ message: "Dependent unregistered from class." });
+      });
+    });
+  });
+});
+
+// 11. Show dependent's registered classes
+app.get("/api/family/dependent/classes/:depId", authenticateToken, (req, res) => {
+  const depId = parseInt(req.params.depId, 10);
+  const email = req.user.email;
+
+  if (isNaN(depId)) return res.status(400).json({ error: "Invalid Dependent ID." });
+
+  // Confirm request comes from the family owner
+  const ownerQuery = `
+    SELECT fa.FamilyID
+    FROM Member m
+    JOIN FamilyAccount fa ON fa.OwnerMemID = m.MemID
+    WHERE m.Email = ?
+  `;
+
+  db.get(ownerQuery, [email], (err, owner) => {
+    if (err || !owner) return res.status(403).json({ error: "Unauthorized." });
+
+    db.get("SELECT * FROM Dependent WHERE DepID = ? AND FamilyID = ?", [depId, owner.FamilyID], (err, dep) => {
+      if (err || !dep) return res.status(404).json({ error: "Dependent not found in your family." });
+
+      const query = `
+        SELECT c.ClassName, c.StartDate, c.EndDate
+        FROM Register r
+        JOIN Class c ON r.ClassID = c.ClassID
+        WHERE r.DepID = ?
+      `;
+
+      db.all(query, [depId], (err, classes) => {
+        if (err) return res.status(500).json({ error: "Failed to fetch registered classes." });
+        res.json({ classes });
+      });
     });
   });
 });
