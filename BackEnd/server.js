@@ -425,22 +425,39 @@ app.patch("/api/users/:email/status", authenticateToken, (req, res) => {
     if (member) {
       const memID = member.MemID;
 
-      db.run("UPDATE Member SET Status = ?, StatusDate = CURRENT_DATE WHERE MemID = ?", [newStatus, memID], function (err) {
-        if (err) return res.status(500).json({ error: "Failed to update member status" });
-
-        if (newStatus === "Inactive") {
-          db.all("SELECT ClassID FROM Register WHERE MemID = ?", [memID], (err2, rows) => {
-            if (!err2 && rows.length > 0) {
-              const insert = db.prepare(`INSERT INTO Cancelled (ClassID, MemID, NonMemID, DateCancelled, Notified) VALUES (?, ?, NULL, CURRENT_DATE, 0)`);
-              rows.forEach(row => insert.run(row.ClassID, memID));
-              insert.finalize();
-            }
-            db.run("DELETE FROM Register WHERE MemID = ?", [memID]);
-          });
+      db.run(
+        "UPDATE Member SET Status = ?, StatusDate = CURRENT_DATE WHERE MemID = ?",
+        [newStatus, memID],
+        function (err) {
+          if (err) return res.status(500).json({ error: "Failed to update member status" });
+      
+          if (newStatus === "Inactive") {
+            db.all("SELECT ClassID FROM Register WHERE MemID = ?", [memID], (err2, rows) => {
+              if (!err2 && rows.length > 0) {
+                const insert = db.prepare(`
+                  INSERT INTO Cancelled (ClassID, MemID, NonMemID, DateCancelled, Notified)
+                  VALUES (?, ?, NULL, CURRENT_DATE, 0)
+                `);
+      
+                rows.forEach(row => {
+                  insert.run(row.ClassID, memID);
+      
+                  db.run(
+                    "UPDATE Class SET CurrCapacity = CurrCapacity - 1 WHERE ClassID = ? AND CurrCapacity > 0",
+                    [row.ClassID]
+                  );
+                });
+      
+                insert.finalize();
+              }
+      
+              db.run("DELETE FROM Register WHERE MemID = ?", [memID]);
+            });
+          }
+      
+          return res.json({ message: `Status updated to ${newStatus}` });
         }
-
-        return res.json({ message: `Status updated to ${newStatus}` });
-      });
+      );
 
       return;
     }
