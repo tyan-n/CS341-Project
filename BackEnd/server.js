@@ -219,27 +219,29 @@ app.post("/api/programs", (req, res) => {
     }
 
     const insertClassSql = `
-      INSERT INTO Class (
-        EmpID, ClassName, RoomNumber, StartDate, EndDate,
-        StartTime, EndTime, Description, CurrCapacity,
-        MemPrice, NonMemPrice, ClassType, Status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)
-    `;
+    INSERT INTO Class (
+      EmpID, ClassName, RoomNumber, StartDate, EndDate,
+      StartTime, EndTime, Description, CurrCapacity,
+      MemPrice, NonMemPrice, ClassType, Status, MaxCapacity
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?)
+  `;
 
-    const values = [
-      programData.empId || 1, // default fallback
-      programData.name,
-      programData.location,
-      programData.startDate,
-      programData.endDate,
-      programData.startTime,
-      programData.endTime,
-      programData.description,
-      programData.priceMember,
-      programData.priceNonMember,
-      programData.classType,
-      programData.status || "Open Spots"
-    ];
+  const values = [
+    programData.empId || 1,
+    programData.name,
+    programData.location,
+    programData.startDate,
+    programData.endDate,
+    programData.startTime,
+    programData.endTime,
+    programData.description,
+    programData.priceMember,
+    programData.priceNonMember,
+    programData.classType,
+    programData.status || "Open Spots",
+    programData.capacity 
+  ];
+  
 
     db.run(insertClassSql, values, function (err) {
       if (err) {
@@ -281,7 +283,8 @@ app.get("/api/programs", authenticateToken, (req, res) => {
       c.StartTime AS startTime,
       c.EndTime AS endTime,
       c.RoomNumber AS location,
-      r.MaxCapacity - c.CurrCapacity AS capacity,
+      c.MaxCapacity - c.CurrCapacity AS capacity,
+      c.MaxCapacity AS maxCapacity,
       c.MemPrice AS priceMember,
       c.NonMemPrice AS priceNonMember,
       c.Status AS status,
@@ -362,7 +365,8 @@ app.get("/api/programs/:id", (req, res) => {
       Class.StartTime AS startTime,
       Class.EndTime AS endTime,
       Class.RoomNumber AS location,
-      Room.MaxCapacity - Class.CurrCapacity AS capacity,
+      Class.MaxCapacity - Class.CurrCapacity AS capacity,
+      Class.MaxCapacity AS maxCapacity,
       Class.MemPrice AS priceMember,
       Class.NonMemPrice AS priceNonMember
     FROM Class
@@ -372,11 +376,11 @@ app.get("/api/programs/:id", (req, res) => {
 
   db.get(sql, [programId], (err, program) => {
     if (err) {
-      console.error("❌ Error fetching program:", err);
+      console.error("Error fetching program:", err);
       return res.status(500).json({ error: "Server error" });
     }
     if (!program) {
-      console.log("❌ Program not found in database");
+      console.log("Program not found in database");
       return res.status(404).json({ error: "Program not found" });
     }
     res.json(program);
@@ -532,12 +536,21 @@ app.post("/api/users/:email/register/:classId", authenticateToken, (req, res) =>
         return res.status(403).json({ error: "Cannot assign class: user is inactive." });
       }
 
-      const sql = "INSERT INTO Register (MemID, ClassID) VALUES (?, ?)";
-      return db.run(sql, [member.MemID, classId], function (err) {
-        if (err) return res.status(500).json({ error: "Failed to assign class" });
+      // Capacity check before registration
+      return db.get("SELECT CurrCapacity, MaxCapacity FROM Class WHERE ClassID = ?", [classId], (err, row) => {
+        if (err) return res.status(500).json({ error: "Error checking class capacity" });
+        if (!row) return res.status(404).json({ error: "Class not found" });
+        if (row.CurrCapacity >= row.MaxCapacity) {
+          return res.status(400).json({ error: "Class is full. Cannot register." });
+        }
 
-        db.run("UPDATE Class SET CurrCapacity = CurrCapacity + 1 WHERE ClassID = ?", [classId]);
-        res.json({ message: "Class assigned", classId: parseInt(classId) });
+        const sql = "INSERT INTO Register (MemID, ClassID) VALUES (?, ?)";
+        db.run(sql, [member.MemID, classId], function (err) {
+          if (err) return res.status(500).json({ error: "Failed to assign class" });
+
+          db.run("UPDATE Class SET CurrCapacity = CurrCapacity + 1 WHERE ClassID = ?", [classId]);
+          res.json({ message: "Class assigned", classId: parseInt(classId) });
+        });
       });
     }
 
@@ -549,12 +562,21 @@ app.post("/api/users/:email/register/:classId", authenticateToken, (req, res) =>
         return res.status(403).json({ error: "Cannot assign class: user is inactive." });
       }
 
-      const sql = "INSERT INTO Register (NonMemID, ClassID) VALUES (?, ?)";
-      db.run(sql, [nonmem.NonMemID, classId], function (err3) {
-        if (err3) return res.status(500).json({ error: "Failed to assign class" });
+      // Capacity check before registration
+      db.get("SELECT CurrCapacity, MaxCapacity FROM Class WHERE ClassID = ?", [classId], (err, row) => {
+        if (err) return res.status(500).json({ error: "Error checking class capacity" });
+        if (!row) return res.status(404).json({ error: "Class not found" });
+        if (row.CurrCapacity >= row.MaxCapacity) {
+          return res.status(400).json({ error: "Class is full. Cannot register." });
+        }
 
-        db.run("UPDATE Class SET CurrCapacity = CurrCapacity + 1 WHERE ClassID = ?", [classId]);
-        res.json({ message: "Class assigned", classId: parseInt(classId) });
+        const sql = "INSERT INTO Register (NonMemID, ClassID) VALUES (?, ?)";
+        db.run(sql, [nonmem.NonMemID, classId], function (err3) {
+          if (err3) return res.status(500).json({ error: "Failed to assign class" });
+
+          db.run("UPDATE Class SET CurrCapacity = CurrCapacity + 1 WHERE ClassID = ?", [classId]);
+          res.json({ message: "Class assigned", classId: parseInt(classId) });
+        });
       });
     });
   });
@@ -682,24 +704,23 @@ function getVal(obj, key) {
 }
 
 function isTimeConflict(newClass, existingClass) {
-  // Get start and end dates/times using consistent naming.
-  const newStartDate = getVal(newClass, "startDate");
+  const getVal = (obj, key) => obj[key] ?? obj[key.charAt(0).toUpperCase() + key.slice(1)];
+
   const newStartTime = getVal(newClass, "startTime");
-  const newEndDate = getVal(newClass, "endDate") || newStartDate;
   const newEndTime = getVal(newClass, "endTime");
+  const newDays = getVal(newClass, "days")?.split(",") || [];
 
-  const existStartDate = getVal(existingClass, "startDate");
   const existStartTime = getVal(existingClass, "startTime");
-  const existEndDate = getVal(existingClass, "endDate") || existStartDate;
   const existEndTime = getVal(existingClass, "endTime");
+  const existDays = getVal(existingClass, "days")?.split(",") || [];
 
-  const newStart = new Date(`${newStartDate}T${newStartTime}`);
-  const newEnd = new Date(`${newEndDate}T${newEndTime}`);
-  const existStart = new Date(`${existStartDate}T${existStartTime}`);
-  const existEnd = new Date(`${existEndDate}T${existEndTime}`);
+  const hasDayOverlap = newDays.some(day => existDays.includes(day));
+  if (!hasDayOverlap) return false;
 
-  // Check conflict only if they occur on the same day.
-  if (newStart.toISOString().split('T')[0] !== existStart.toISOString().split('T')[0]) return false;
+  const newStart = new Date(`1970-01-01T${newStartTime}`);
+  const newEnd = new Date(`1970-01-01T${newEndTime}`);
+  const existStart = new Date(`1970-01-01T${existStartTime}`);
+  const existEnd = new Date(`1970-01-01T${existEndTime}`);
 
   return newStart < existEnd && existStart < newEnd;
 }
@@ -707,92 +728,132 @@ function isTimeConflict(newClass, existingClass) {
 app.post("/api/register", authenticateToken, (req, res) => {
   const { programId } = req.body;
   const userEmail = req.user.email;
+
   db.get("SELECT MemID FROM Member WHERE Email = ?", [userEmail], (err, member) => {
     if (err) {
       console.error("Error searching Member table:", err);
       return res.status(500).json({ error: "Database error" });
     }
+
     db.get("SELECT NonMemID FROM NonMember WHERE Email = ?", [userEmail], (err, nonMember) => {
       if (err) {
         console.error("Error searching NonMemID:", err);
         return res.status(500).json({ error: "Database error" });
       }
+
       if (!member && !nonMember) {
         return res.status(404).json({ error: "User not found in Member or NonMember table." });
       }
+
       const newClassQuery = `
-          SELECT StartDate, EndDate, StartTime, EndTime, RoomNumber 
-          FROM Class 
-          WHERE ClassID = ?
-      `;
+      SELECT StartDate, EndDate, StartTime, EndTime, RoomNumber,
+             GROUP_CONCAT(ClassDays.DayOfWeek) AS days
+      FROM Class
+      LEFT JOIN ClassDays ON Class.ClassID = ClassDays.ClassID
+      WHERE Class.ClassID = ?
+      GROUP BY Class.ClassID
+    `;    
+
       db.get(newClassQuery, [programId], (err, newClass) => {
         if (err) {
           console.error("Error fetching new class details:", err);
           return res.status(500).json({ error: "Error fetching class details" });
         }
+
         if (!newClass) {
           return res.status(404).json({ error: "Class not found" });
         }
-        let userId, idField;
-        if (member) {
-          userId = member.MemID;
-          idField = "MemID";
-        } else {
-          userId = nonMember.NonMemID;
-          idField = "NonMemID";
-        }
-        // NEW: Check if the user is already registered for this program.
-        const checkRegQuery = `SELECT * FROM Register WHERE ${idField} = ? AND ClassID = ?`;
-        db.get(checkRegQuery, [userId, programId], (err, existingReg) => {
+
+        // Capacity check
+        db.get("SELECT CurrCapacity, MaxCapacity FROM Class WHERE ClassID = ?", [programId], (err, capRow) => {
           if (err) {
-            console.error("Error checking registration:", err);
-            return res.status(500).json({ error: "Database error" });
+            console.error("Error checking class capacity:", err);
+            return res.status(500).json({ error: "Error checking capacity" });
           }
-          if (existingReg) {
-            return res.status(400).json({ error: "You are already registered for this program." });
+
+          if (!capRow) {
+            return res.status(404).json({ error: "Class not found" });
           }
-          // Exclude the class being registered from conflict check.
-          const registrationsQuery = `
-            SELECT c.StartDate, c.EndDate, c.StartTime, c.EndTime, c.RoomNumber 
-            FROM Register r
-            JOIN Class c ON r.ClassID = c.ClassID
-            WHERE r.${idField} = ? AND c.ClassID != ?
-          `;
-          db.all(registrationsQuery, [userId, programId], (err, registrations) => {
+
+          if (capRow.CurrCapacity >= capRow.MaxCapacity) {
+            return res.status(400).json({ error: "Class is full. Cannot register." });
+          }
+
+          let userId, idField;
+          if (member) {
+            userId = member.MemID;
+            idField = "MemID";
+          } else {
+            userId = nonMember.NonMemID;
+            idField = "NonMemID";
+          }
+
+          // Check for duplicate registration
+          const checkRegQuery = `SELECT * FROM Register WHERE ${idField} = ? AND ClassID = ?`;
+          db.get(checkRegQuery, [userId, programId], (err, existingReg) => {
             if (err) {
-              console.error("Error fetching registrations:", err);
-              return res.status(500).json({ error: "Error fetching registrations" });
+              console.error("Error checking registration:", err);
+              return res.status(500).json({ error: "Database error" });
             }
-            for (const reg of registrations) {
-              if (isTimeConflict(newClass, reg)) {
-                return res.status(400).json({
-                  error: "Scheduling conflict: You are already registered for a class at this time."
-                });
-              }
+
+            if (existingReg) {
+              return res.status(400).json({ error: "You are already registered for this program." });
             }
-            const query = member
-              ? "INSERT INTO Register (MemID, ClassID) VALUES (?, ?)"
-              : "INSERT INTO Register (NonMemID, ClassID) VALUES (?, ?)";
-            const params = member ? [member.MemID, programId] : [nonMember.NonMemID, programId];
-            db.run(query, params, function (err) {
+
+            // Time conflict check
+            const registrationsQuery = `
+              SELECT 
+                c.StartDate, c.EndDate, c.StartTime, c.EndTime, c.RoomNumber,
+                GROUP_CONCAT(cd.DayOfWeek) AS days
+              FROM Register r
+              JOIN Class c ON r.ClassID = c.ClassID
+              LEFT JOIN ClassDays cd ON c.ClassID = cd.ClassID
+              WHERE r.${idField} = ? AND c.ClassID != ?
+              GROUP BY c.ClassID
+            `;
+
+            db.all(registrationsQuery, [userId, programId], (err, registrations) => {
               if (err) {
-                if (err.code === "SQLITE_CONSTRAINT") {
-                  return res.status(400).json({ error: "You are already registered for this program." });
-                } else {
-                  console.error("Error registering user:", err);
-                  return res.status(500).json({ error: "Database error" });
+                console.error("Error fetching registrations:", err);
+                return res.status(500).json({ error: "Error fetching registrations" });
+              }
+
+              for (const reg of registrations) {
+                if (isTimeConflict(newClass, reg)) {
+                  return res.status(400).json({
+                    error: "Scheduling conflict: You are already registered for a class at this time."
+                  });
                 }
               }
-              db.run("UPDATE Class SET CurrCapacity = CurrCapacity + 1 WHERE ClassID = ?",
-                [programId],
-                function (err) {
-                  if (err) {
-                    console.error("Error updating CurrCapacity:", err);
-                    return res.status(500).json({ error: "Registration saved, but failed to update capacity." });
+
+              // Register and update capacity
+              const query = member
+                ? "INSERT INTO Register (MemID, ClassID) VALUES (?, ?)"
+                : "INSERT INTO Register (NonMemID, ClassID) VALUES (?, ?)";
+              const params = member ? [member.MemID, programId] : [nonMember.NonMemID, programId];
+
+              db.run(query, params, function (err) {
+                if (err) {
+                  if (err.code === "SQLITE_CONSTRAINT") {
+                    return res.status(400).json({ error: "You are already registered for this program." });
+                  } else {
+                    console.error("Error registering user:", err);
+                    return res.status(500).json({ error: "Database error" });
                   }
-                  res.json({ message: "Registration successful!" });
                 }
-              );
+
+                db.run("UPDATE Class SET CurrCapacity = CurrCapacity + 1 WHERE ClassID = ?",
+                  [programId],
+                  function (err) {
+                    if (err) {
+                      console.error("Error updating CurrCapacity:", err);
+                      return res.status(500).json({ error: "Registration saved, but failed to update capacity." });
+                    }
+
+                    res.json({ message: "Registration successful!" });
+                  }
+                );
+              });
             });
           });
         });
@@ -800,6 +861,7 @@ app.post("/api/register", authenticateToken, (req, res) => {
     });
   });
 });
+
 
 /* ----------------------------------------
     Get Registrations for the Authenticated User

@@ -70,6 +70,7 @@ document.addEventListener("DOMContentLoaded", async function () {
           registrationMessage.innerText = "✅ Registration successful!";
           registerButton.disabled = true;
         } else {
+          console.log("🚨 Backend error details:", data);
           registrationMessage.innerText = `❌ ${data.error}`;
         }
       } catch (error) {
