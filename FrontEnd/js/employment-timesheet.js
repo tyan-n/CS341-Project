@@ -235,21 +235,26 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   async function registerToTeach(program, cardEl) {
     try {
-      const resp = await fetch(`http://localhost:5000/api/staff/teaching/${program.id}`, {
-        method: "POST", headers: { Authorization: `Bearer ${token}` }
-      });
+      const resp = await fetch(
+        `http://localhost:5000/api/staff/teaching/${program.id}`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+  
       if (resp.ok) {
-        alert("You’re now assigned to teach that class!");
+        // show HTML popup
+        showNotificationModal("You’re now assigned to teach that class!");
         teachingAssignments.push(program);
         renderClasses();
         cardEl.remove();
       } else {
         const { error } = await resp.json();
-        alert("Failed to assign: " + error);
+        showNotificationModal(`Failed to assign: ${error}`);
       }
     } catch (e) {
-      console.error("Register error:", e);
-      alert("Error assigning you to teach.");
+      // show the error in your modal instead of console
+      showNotificationModal(`Error assigning you to teach: ${e.message || e}`);
     }
   }
 

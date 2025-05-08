@@ -273,7 +273,10 @@ document.addEventListener("DOMContentLoaded", () => {
         });
   
         if (conflict) {
-          alert("⚠️ This class conflicts with an existing class on the user's schedule.");
+          // show inline warning
+          calendarMsg.textContent = "⚠️ This class conflicts with an existing class on the user's schedule.";
+          calendarMsg.style.display = "block";      // ensure it’s visible
+          calendarMsg.classList.add("warning");     // optional: add a CSS class for styling
           return;
         }
   

@@ -1,4 +1,46 @@
 document.addEventListener("DOMContentLoaded", function () {
+  // ─────────────────────────────────────────────────────────────────
+  // 1) Helper to show an HTML pop‑up with an OK button
+  function showNotificationModal(message, onConfirm) {
+    // create backdrop
+    const overlay = document.createElement("div");
+    overlay.style = `
+      position: fixed;
+      top:0; left:0; right:0; bottom:0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+    `;
+
+    // create box
+    const box = document.createElement("div");
+    box.style = `
+      background: #fff;
+      padding: 1.5rem;
+      border-radius: 4px;
+      max-width: 90%;
+      text-align: center;
+      font-size: 14px;
+    `;
+    box.innerHTML = `<p>${message.replace(/\n/g, "<br>")}</p>`;
+
+    // OK button
+    const btn = document.createElement("button");
+    btn.innerText = "OK";
+    btn.className = "ymca-button";
+    btn.addEventListener("click", () => {
+      document.body.removeChild(overlay);
+      if (typeof onConfirm === "function") onConfirm();
+    });
+    box.appendChild(btn);
+
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+  }
+  // ─────────────────────────────────────────────────────────────────
+
   const nav = document.createElement("nav");
   nav.className = "ymca-navbar";
 
@@ -26,7 +68,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const logoutBtn             = `<button id="logout-button"><i class="fas fa-sign-out-alt"></i> Logout</button>`;
   const helpLink              = `<a href="${pathPrefix}help.html"><i class="fas fa-question-circle"></i> Help</a>`;
 
-  // Build Nav HTML — using text instead of image
+  // Build Nav HTML
   nav.innerHTML = `
     <div class="nav-content">
       <a href="${homePath}" class="logo">
@@ -90,13 +132,19 @@ document.addEventListener("DOMContentLoaded", function () {
       .then((cancellations) => {
         if (cancellations.length > 0) {
           const summary = cancellations.map(c => `• ${c.Name}`).join("\n");
-          const message = `📣 The following classes were removed from your schedule:\n\n${summary}\n\nClick OK to dismiss.`;
-          if (confirm(message)) {
+          const message =
+            "📣 The following classes were removed from your schedule:\n\n" +
+            summary;
+
+          // ─────────────────────────────────────────────────────────
+          // Replace native confirm with our modal
+          showNotificationModal(message, () => {
             fetch("http://localhost:5000/api/cancelled", {
               method: "DELETE",
               headers: { Authorization: `Bearer ${token}` }
             });
-          }
+          });
+          // ─────────────────────────────────────────────────────────
         }
       })
       .catch((err) => console.error("❌ Failed to fetch class notifications:", err));

@@ -136,6 +136,40 @@ app.post("/api/signup", async (req, res) => {
         street.trim(), houseNumber.trim(), city.trim(), state.trim(), zipCode.trim(),
         phone.trim(), username.trim(), hashedPassword, feeValue, acctType
       ];
+      /*db.run(sql, params, function (err) {
+        if (err) {
+          console.error("Error inserting member:", err);
+          return res.status(500).json({ error: "Error inserting member" });
+        }
+
+        const newMemberId = this.lastID;
+        console.log("Member inserted, ID:", newMemberId);
+
+        if (username.trim().endsWith("@ymca.org")) {
+          // Insert into Staff table
+          sqlS = `INSERT INTO Member (
+            FName, LName, MName, SSN, PhoneNumber, Street, HouseNumber, City, State, ZipCode,
+            Birthday, Email, StartDate, Role
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+          
+         paramsS = [
+            fname.trim(), lname.trim(), mname ? mname.trim() : null, birthday.trim(),
+            street.trim(), houseNumber.trim(), city.trim(), state.trim(), zipCode.trim(),
+            phone.trim(), username.trim(), hashedPassword, feeValue, acctType
+          ];
+          db.run(sqlS, paramsS, function (staffErr) {
+            if (staffErr) {
+              console.error("Error inserting staff:", staffErr);
+              return res.status(500).json({ error: "Error inserting staff" });
+            }
+            console.log("Staff record created for member:", newMemberId);
+            return res.json({ message: "Employee member registered successfully", id: newMemberId });
+          });
+        } else {
+          return res.json({ message: "Member registered successfully", id: newMemberId });
+        }
+      });*/
+
     } else if (membershipType === "non-member") {
       sql = `INSERT INTO NonMember (
                 FName, LName, MName, Birthday, Email, PhoneNumber, Password
@@ -393,13 +427,13 @@ app.get("/api/programs/:id", (req, res) => {
 
 // Get user profile (status or nonmember flag)
 app.get("/api/users/:email/profile", authenticateToken, (req, res) => {
-  const email = req.params.email.trim().toLowerCase();
+  const email = req.params.email.trim();
 
-  db.get("SELECT Status FROM Member WHERE LOWER(Email) = ?", [email], (err, member) => {
+  db.get("SELECT Status FROM Member WHERE Email = ?", [email], (err, member) => {
     if (err) return res.status(500).json({ error: "Database error" });
     if (member) return res.json({ type: "member", email, status: member.Status.toLowerCase() });
 
-    db.get("SELECT * FROM NonMember WHERE LOWER(Email) = ?", [email], (err, nonmem) => {
+    db.get("SELECT * FROM NonMember WHERE Email = ?", [email], (err, nonmem) => {
       if (err) return res.status(500).json({ error: "Database error" });
       if (nonmem) return res.json({ type: "nonmember", email, status: "nonmember" });
 
@@ -410,7 +444,7 @@ app.get("/api/users/:email/profile", authenticateToken, (req, res) => {
 
 // Update status and remove registrations if deactivating
 app.patch("/api/users/:email/status", authenticateToken, (req, res) => {
-  const email = req.params.email.trim().toLowerCase();
+  const email = req.params.email.trim();
   const { status } = req.body;
 
   if (!["active", "inactive"].includes(status)) {
@@ -419,7 +453,7 @@ app.patch("/api/users/:email/status", authenticateToken, (req, res) => {
 
   const newStatus = status.charAt(0).toUpperCase() + status.slice(1);
 
-  db.get("SELECT MemID FROM Member WHERE LOWER(Email) = ?", [email], (err, member) => {
+  db.get("SELECT MemID FROM Member WHERE Email = ?", [email], (err, member) => {
     if (err) return res.status(500).json({ error: "Database error" });
 
     if (member) {
@@ -463,7 +497,7 @@ app.patch("/api/users/:email/status", authenticateToken, (req, res) => {
     }
 
     // If not a member, try nonmember
-    db.get("SELECT NonMemID FROM NonMember WHERE LOWER(Email) = ?", [email], (err2, nonmem) => {
+    db.get("SELECT NonMemID FROM NonMember WHERE Email = ?", [email], (err2, nonmem) => {
       if (err2 || !nonmem) return res.status(404).json({ error: "User not found" });
 
       const nonMemID = nonmem.NonMemID;
@@ -490,9 +524,9 @@ app.patch("/api/users/:email/status", authenticateToken, (req, res) => {
 
 // Get all registrations for a user (member or nonmember) including recurring days
 app.get("/api/users/:email/registrations", authenticateToken, (req, res) => {
-  const email = req.params.email.trim().toLowerCase();
+  const email = req.params.email.trim();
 
-  db.get("SELECT MemID FROM Member WHERE LOWER(Email) = ?", [email], (err, member) => {
+  db.get("SELECT MemID FROM Member WHERE Email = ?", [email], (err, member) => {
     if (err) return res.status(500).json({ error: "Database error" });
 
     if (member) {
@@ -515,7 +549,7 @@ app.get("/api/users/:email/registrations", authenticateToken, (req, res) => {
       });
     }
 
-    db.get("SELECT NonMemID FROM NonMember WHERE LOWER(Email) = ?", [email], (err, nonmem) => {
+    db.get("SELECT NonMemID FROM NonMember WHERE Email = ?", [email], (err, nonmem) => {
       if (err || !nonmem) return res.status(404).json({ error: "User not found" });
 
       db.all(`
@@ -541,11 +575,11 @@ app.get("/api/users/:email/registrations", authenticateToken, (req, res) => {
 
 // Assign class to MEMBER or NONMEMBER with status check
 app.post("/api/users/:email/register/:classId", authenticateToken, (req, res) => {
-  const email = req.params.email.trim().toLowerCase();
+  const email = req.params.email.trim();
   const classId = req.params.classId;
 
   // Check Member first
-  db.get("SELECT MemID, Status FROM Member WHERE LOWER(Email) = ?", [email], (err, member) => {
+  db.get("SELECT MemID, Status FROM Member WHERE Email = ?", [email], (err, member) => {
     if (err) return res.status(500).json({ error: "Database error" });
 
     if (member) {
@@ -572,7 +606,7 @@ app.post("/api/users/:email/register/:classId", authenticateToken, (req, res) =>
     }
 
     // Check NonMember
-    db.get("SELECT NonMemID, Status FROM NonMember WHERE LOWER(Email) = ?", [email], (err2, nonmem) => {
+    db.get("SELECT NonMemID, Status FROM NonMember WHERE Email = ?", [email], (err2, nonmem) => {
       if (err2 || !nonmem) return res.status(404).json({ error: "User not found" });
 
       if (nonmem.Status.toLowerCase() === "inactive") {
@@ -601,10 +635,10 @@ app.post("/api/users/:email/register/:classId", authenticateToken, (req, res) =>
 
 // Unregister class for MEMBER or NONMEMBER and log in Cancelled
 app.delete("/api/users/:email/register/:classId", authenticateToken, (req, res) => {
-  const email = req.params.email.trim().toLowerCase();
+  const email = req.params.email.trim();
   const classId = req.params.classId;
 
-  db.get("SELECT MemID FROM Member WHERE LOWER(Email) = ?", [email], (err, member) => {
+  db.get("SELECT MemID FROM Member WHERE Email = ?", [email], (err, member) => {
     if (err) return res.status(500).json({ error: "Database error" });
 
     if (member) {
@@ -626,7 +660,7 @@ app.delete("/api/users/:email/register/:classId", authenticateToken, (req, res) 
     }
 
     // Try NonMember
-    db.get("SELECT NonMemID FROM NonMember WHERE LOWER(Email) = ?", [email], (err2, nonmem) => {
+    db.get("SELECT NonMemID FROM NonMember WHERE Email = ?", [email], (err2, nonmem) => {
       if (err2 || !nonmem) return res.status(404).json({ error: "User not found" });
 
       const sql = "DELETE FROM Register WHERE NonMemID = ? AND ClassID = ?";
@@ -884,9 +918,9 @@ app.post("/api/register", authenticateToken, (req, res) => {
     Get Registrations for the Authenticated User
  ---------------------------------------- */
 app.get("/api/registrations", authenticateToken, (req, res) => {
-  const userEmail = req.user.email.toLowerCase();
+  const userEmail = req.user.email;
 
-  db.get("SELECT MemID FROM Member WHERE LOWER(Email) = ?", [userEmail], (err, member) => {
+  db.get("SELECT MemID FROM Member WHERE Email = ?", [userEmail], (err, member) => {
     if (err) {
       console.error("Error fetching member info:", err);
       return res.status(500).json({ error: "Database error" });
@@ -921,7 +955,7 @@ app.get("/api/registrations", authenticateToken, (req, res) => {
     }
 
     // If not a member, check NonMember
-    db.get("SELECT NonMemID FROM NonMember WHERE LOWER(Email) = ?", [userEmail], (err, nonmem) => {
+    db.get("SELECT NonMemID FROM NonMember WHERE Email = ?", [userEmail], (err, nonmem) => {
       if (err) {
         console.error("Error fetching nonmember info:", err);
         return res.status(500).json({ error: "Database error" });
@@ -1474,9 +1508,9 @@ app.get("/api/family/dependent/classes/:depId", authenticateToken, (req, res) =>
 
 // Show Cancelled Notifications (on login)
 app.get("/api/cancelled", authenticateToken, (req, res) => {
-  const email = req.user.email.toLowerCase();
+  const email = req.user.email;
 
-  db.get("SELECT MemID FROM Member WHERE LOWER(Email) = ?", [email], (err, member) => {
+  db.get("SELECT MemID FROM Member WHERE Email = ?", [email], (err, member) => {
     if (err) return res.status(500).json({ error: "Database error" });
 
     if (member) {
@@ -1492,7 +1526,7 @@ app.get("/api/cancelled", authenticateToken, (req, res) => {
       });
     }
 
-    db.get("SELECT NonMemID FROM NonMember WHERE LOWER(Email) = ?", [email], (err2, nonmem) => {
+    db.get("SELECT NonMemID FROM NonMember WHERE Email = ?", [email], (err2, nonmem) => {
       if (err2 || !nonmem) return res.json([]);
 
       const sql = `
@@ -1512,9 +1546,9 @@ app.get("/api/cancelled", authenticateToken, (req, res) => {
 
 // Dismiss Notifications
 app.delete("/api/cancelled", authenticateToken, (req, res) => {
-  const email = req.user.email.toLowerCase();
+  const email = req.user.email;
 
-  db.get("SELECT MemID FROM Member WHERE LOWER(Email) = ?", [email], (err, member) => {
+  db.get("SELECT MemID FROM Member WHERE Email = ?", [email], (err, member) => {
     if (err) return res.status(500).json({ error: "Database error" });
 
     if (member) {
@@ -1528,7 +1562,7 @@ app.delete("/api/cancelled", authenticateToken, (req, res) => {
       );
     }
 
-    db.get("SELECT NonMemID FROM NonMember WHERE LOWER(Email) = ?", [email], (err2, nonmem) => {
+    db.get("SELECT NonMemID FROM NonMember WHERE Email = ?", [email], (err2, nonmem) => {
       if (err2 || !nonmem) return res.status(404).json({ error: "User not found" });
 
       db.run(
@@ -1574,7 +1608,7 @@ app.delete("/api/cancelled", authenticateToken, (req, res) => {
   const params = [from, to];
 
   if (email) {
-    sql += ` AND LOWER(COALESCE(m.Email, n.Email)) = LOWER(?)`;
+    sql += ` AND COALESCE(m.Email, n.Email) = ?`;
     params.push(email);
   }
 
@@ -1648,7 +1682,7 @@ app.get("/api/staff/teaching", authenticateToken, (req, res) => {
     JOIN Member m ON e.MemID = m.MemID
     JOIN Class c ON c.ClassID = t.ClassID
     LEFT JOIN ClassDays cd ON cd.ClassID = c.ClassID
-    WHERE LOWER(m.Email) = LOWER(?)
+    WHERE m.Email = ?
     GROUP BY c.ClassID
   `;
 
@@ -1673,7 +1707,7 @@ app.post("/api/staff/teaching/:id", authenticateToken, (req, res) => {
   const findEmpSql = `
     SELECT EmpID
     FROM Employee
-    WHERE MemID = (SELECT MemID FROM Member WHERE LOWER(Email) = LOWER(?))
+    WHERE MemID = (SELECT MemID FROM Member WHERE Email = ?)
   `;
 
 
@@ -1747,7 +1781,7 @@ app.delete("/api/staff/teaching/:id", authenticateToken, (req, res) => {
   const findEmp = `
     SELECT EmpID FROM Employee
     WHERE MemID = (
-      SELECT MemID FROM Member WHERE LOWER(Email)=LOWER(?)
+      SELECT MemID FROM Member WHERE Email = ?
     )`;
   db.get(findEmp, [userEmail], (err, row) => {
     if (err || !row) {

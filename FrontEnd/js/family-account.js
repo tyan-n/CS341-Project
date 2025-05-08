@@ -1,47 +1,31 @@
-// Helper to show a modal with a message and an OK button.
-function showModal(message) {
-  const modal = document.getElementById("modal");
+// Unified modal helper.
+//  – showModal(message)            ⇒ single “Yes” button, resolves true when clicked
+//  – showModal(message, true)      ⇒ “Yes” & “No” buttons, resolves true/false
+function showModal(message, isConfirm = false) {
+  const modal        = document.getElementById("modal");
   const modalMessage = document.getElementById("modal-message");
+  const container    = modal.querySelector(".modal-content");
+
+  // update text
   modalMessage.innerText = message;
 
-  // Remove old buttons
-  modal.querySelectorAll("button.modal-ok").forEach(btn => btn.remove());
+  // clear out any old buttons
+  container.querySelectorAll("button").forEach(btn => btn.remove());
 
-  const okBtn = document.createElement("button");
-  okBtn.innerText = "OK";
-  okBtn.className = "ymca-button modal-ok";
-
-  modal.querySelector(".modal-content").appendChild(okBtn);
-  modal.style.display = "block";
-
-  return new Promise(resolve => {
-    okBtn.onclick = () => {
-      modal.style.display = "none";
-      resolve(true);
-    };
-  });
-}
-
-// Helper to show a confirmation modal
-function confirmModal(message) {
-  const modal = document.getElementById("modal");
-  const modalMessage = document.getElementById("modal-message");
-  modalMessage.innerText = message;
-
-  //  Clear ALL buttons 
-  modal.querySelectorAll("button").forEach(btn => btn.remove());
-
+  // create Yes
   const yesBtn = document.createElement("button");
-  yesBtn.innerText = "Yes";
-  yesBtn.className = "ymca-button modal-confirm";
+  yesBtn.innerText   = "Yes";
+  yesBtn.className   = "ymca-button modal-btn";
+  container.appendChild(yesBtn);
 
-  const noBtn = document.createElement("button");
-  noBtn.innerText = "No";
-  noBtn.className = "danger-button modal-confirm";
-
-  const modalContent = modal.querySelector(".modal-content");
-  modalContent.appendChild(yesBtn);
-  modalContent.appendChild(noBtn);
+  let noBtn;
+  if (isConfirm) {
+    // create No only when we need a confirmation
+    noBtn = document.createElement("button");
+    noBtn.innerText   = "No";
+    noBtn.className   = "danger-button modal-btn";
+    container.appendChild(noBtn);
+  }
 
   modal.style.display = "block";
 
@@ -50,10 +34,12 @@ function confirmModal(message) {
       modal.style.display = "none";
       resolve(true);
     };
-    noBtn.onclick = () => {
-      modal.style.display = "none";
-      resolve(false);
-    };
+    if (noBtn) {
+      noBtn.onclick = () => {
+        modal.style.display = "none";
+        resolve(false);
+      };
+    }
   });
 }
 
@@ -102,7 +88,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         removeBtn.className = "danger-button";
     
         removeBtn.onclick = async () => {
-          const confirmed = await confirmModal("Are you sure you want to remove this member?");
+          const confirmed = await showModal("Are you sure you want to remove this member?");
           if (!confirmed) return;
     
           try {
@@ -192,7 +178,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         removeBtn.textContent = "Remove";
         removeBtn.className = "danger-button";
         removeBtn.onclick = async () => {
-          const confirmed = await confirmModal("Remove this dependent?");
+          const confirmed = await showModal("Remove this dependent?");
           if (!confirmed) return;
     
           try {
@@ -237,7 +223,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         registerBtn.onclick = async () => {
           const selectedClassId = classSelect.value;
           if (!selectedClassId) return await showModal("Please select a class.");
-          const confirmed = await confirmModal("Register this dependent for the selected class?");
+          const confirmed = await showModal("Register this dependent for the selected class?");
           if (!confirmed) return;
     
           try {
@@ -265,7 +251,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         unregisterBtn.onclick = async () => {
           const selectedClassId = classSelect.value;
           if (!selectedClassId) return await showModal("Please select a class to remove.");
-          const confirmed = await confirmModal("Unregister this dependent from the selected class?");
+          const confirmed = await showModal("Unregister this dependent from the selected class?");
           if (!confirmed) return;
     
           try {
@@ -336,7 +322,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       // Delete family
       deleteSection.style.display = "block";
       document.getElementById("delete-family-btn").addEventListener("click", async () => {
-        const confirmed = await confirmModal("Are you sure you want to delete your entire family account? This cannot be undone.");
+        const confirmed = await showModal("Are you sure you want to delete your entire family account? This cannot be undone.");
         if (!confirmed) return;
 
         try {
