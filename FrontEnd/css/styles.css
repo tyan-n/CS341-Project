@@ -672,9 +672,9 @@ a.ymca-button:hover {
 }
 
 .ymca-navbar .logo {
-  font-size: 1.5rem;       /* adjust size */
+  font-size: 1.5rem;      
   font-weight: bold;
-  color: #fff;             /* or your preferred contrast colour */
+  color: #fff;             
   text-decoration: none;
   padding-right: 1rem;
 }
