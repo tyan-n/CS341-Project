@@ -195,6 +195,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     const programListEl = document.getElementById("program-list");
     const noProgramsEl = document.getElementById("no-programs-message");
 
+    const taughtIds = new Set(teachingAssignments.map(c => c.id));
+
     try {
       const res = await fetch("http://localhost:5000/api/programs", {
         headers: { Authorization: `Bearer ${token}` }
@@ -206,10 +208,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
       }
 
+      const available = Array.isArray(programs) ? programs.filter(p => !taughtIds.has(p.id)) : [];
+
       // Clear any old content
       programListEl.innerHTML = "";
 
-      programs.forEach(p => {
+      available.forEach(p => {
         const card = document.createElement("div");
         card.className = "program-card";
         card.innerHTML = `
