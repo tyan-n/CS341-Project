@@ -3,44 +3,55 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>YMCA Registration</title>
+  <title>YMCA Programme Registration</title>
 
-  <!-- Link to your external stylesheet -->
-  <!-- Adjust the path (e.g., "css/styles.css") if it's located elsewhere -->
   <link rel="stylesheet" href="css/styles.css">
-
-  <!-- Font Awesome for icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
 
-    <!-- Smart navbar injection -->
-    <script src="js/navbar.js"></script>
+  <!-- Smart navbar injection -->
+  <script src="js/navbar.js"></script>
 
-<!--    <header class="ymca-header">
-    <!-- (Removed logout button, as you no longer want logout functionality) -->
- <!-- </header>
--->
-  <div class="container">
-    <h2>Welcome to YMCA Program Registration</h2>
-    <p>Join our community and register for exciting wellness and recreational programs today!</p>
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-content container">
+      <h1>Welcome to YMCA Programme Registration</h1>
+      <p>Join our community and register for exciting wellness and recreational programmes today!</p>
+    </div>
+  </section>
 
-    <!-- Login Button -->
-  <!--  <a href="pages/login.html" class="ymca-button">
-      <i class="fas fa-sign-in-alt"></i> Login to Your Account
-    </a>
+  <!-- Feature highlights -->
+  <section class="features container">
+    <div class="feature">
+      <i class="fas fa-heartbeat fa-2x"></i>
+      <h3>Wellness</h3>
+      <p>Stay healthy with guided fitness classes and health workshops.</p>
+    </div>
+    <div class="feature">
+      <i class="fas fa-users fa-2x"></i>
+      <h3>Community</h3>
+      <p>Connect with others through group activities and volunteer opportunities.</p>
+    </div>
+    <div class="feature">
+      <i class="fas fa-child fa-2x"></i>
+      <h3>Family</h3>
+      <p>Fun programmes for all ages—everyone’s welcome!</p>
+    </div>
+  </section>
 
-    <!-- Browse Classes Button -->
-  <!--  <a href="pages/browse.html" class="ymca-button">
-      <i class="fas fa-book-open"></i> Browse Classes
-    </a>
--->
-</div>
+  <!-- Footer -->
   <footer class="ymca-footer">
-    <p>© 2025 YMCA. Empowering Communities. Building Healthy Lives.</p>
+    <div class="footer-container container">
+      <p>© 2025 YMCA. Empowering Communities. Building Healthy Lives.</p>
+      <div class="footer-links">
+        <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+        <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+        <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+      </div>
+      <p class="contact">Contact us: <a href="mailto:info@ymca.org">info@ymca.org</a> | (123) 456-7890</p>
+    </div>
   </footer>
 
-  <!-- If you have a specific JS file for the index page, add it here. Otherwise, omit. -->
-  <!-- <script src="js/index.js"></script> -->
 </body>
 </html>
