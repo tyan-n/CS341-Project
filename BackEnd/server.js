@@ -1662,7 +1662,9 @@ app.get("/api/classes/:id/roster", authenticateToken, (req, res) => {
 
 app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
 
-//Staff's Employment Timetable
+/* ----------------------------------------
+    Employment Timetable
+ ---------------------------------------- */
 app.get("/api/staff/teaching", authenticateToken, (req, res) => {
   const email = req.user.email;
 
