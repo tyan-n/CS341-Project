@@ -53,5 +53,3 @@ program.js
 Manages the creation and retrieval of YMCA programs.
 Handles adding, modifying, and deleting program details.
 Sends program-related API requests to the backend.
-
-Sleep needed. More Caffiene required. 
