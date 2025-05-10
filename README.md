@@ -55,3 +55,10 @@ This project simulates a YMCA registration and class management system. Users ca
 4. Open browser and visit:
    ```bash
    http://localhost:5000
+
+## Authors
+
+- [Aaron Alymann Jeyaraj](https://github.com/Aaron-AJ)
+- [Tham Yi-Ann](https://github.com/tham2121)
+- [Christina Bartsch](https://github.com/xtinabart)
+- [Macaid Stanley](https://github.com/MacaidStanley)
