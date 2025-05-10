@@ -136,40 +136,7 @@ app.post("/api/signup", async (req, res) => {
         street.trim(), houseNumber.trim(), city.trim(), state.trim(), zipCode.trim(),
         phone.trim(), username.trim(), hashedPassword, feeValue, acctType
       ];
-      /*db.run(sql, params, function (err) {
-        if (err) {
-          console.error("Error inserting member:", err);
-          return res.status(500).json({ error: "Error inserting member" });
-        }
-
-        const newMemberId = this.lastID;
-        console.log("Member inserted, ID:", newMemberId);
-
-        if (username.trim().endsWith("@ymca.org")) {
-          // Insert into Staff table
-          sqlS = `INSERT INTO Member (
-            FName, LName, MName, SSN, PhoneNumber, Street, HouseNumber, City, State, ZipCode,
-            Birthday, Email, StartDate, Role
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-          
-         paramsS = [
-            fname.trim(), lname.trim(), mname ? mname.trim() : null, birthday.trim(),
-            street.trim(), houseNumber.trim(), city.trim(), state.trim(), zipCode.trim(),
-            phone.trim(), username.trim(), hashedPassword, feeValue, acctType
-          ];
-          db.run(sqlS, paramsS, function (staffErr) {
-            if (staffErr) {
-              console.error("Error inserting staff:", staffErr);
-              return res.status(500).json({ error: "Error inserting staff" });
-            }
-            console.log("Staff record created for member:", newMemberId);
-            return res.json({ message: "Employee member registered successfully", id: newMemberId });
-          });
-        } else {
-          return res.json({ message: "Member registered successfully", id: newMemberId });
-        }
-      });*/
-
+      
     } else if (membershipType === "non-member") {
       sql = `INSERT INTO NonMember (
                 FName, LName, MName, Birthday, Email, PhoneNumber, Password
@@ -275,7 +242,6 @@ app.post("/api/programs", (req, res) => {
     programData.status || "Open Spots",
     programData.capacity 
   ];
-  
 
     db.run(insertClassSql, values, function (err) {
       if (err) {
@@ -364,7 +330,6 @@ app.get("/api/programs/inactive", authenticateToken, (req, res) => {
     res.json(rows);
   });
 });
-
 
 /* ----------------------------------------
    Reactivate a Class
@@ -1054,7 +1019,7 @@ app.delete("/api/programs/:id", authenticateToken, (req, res) => {
     FAMILY ACCOUNT ROUTES
  ---------------------------------------- */
  
-// 1. Create a new family account
+// Create a new family account
 app.post("/api/family/create", authenticateToken, (req, res) => {
   const email = req.user.email;
 
@@ -1082,7 +1047,7 @@ app.post("/api/family/create", authenticateToken, (req, res) => {
   });
 });
 
-// 2. Get family status for logged-in user and return all member info
+// Get family status for logged-in user and return all member info
 app.get("/api/account/family-status", authenticateToken, (req, res) => {
   const email = req.user.email;
 
@@ -1130,7 +1095,7 @@ app.get("/api/account/family-status", authenticateToken, (req, res) => {
 });
 
 
-// 3. Add a user to family
+// Add a user to family
 app.post("/api/family/add", authenticateToken, (req, res) => {
   const ownerEmail = req.user.email;
   const { username } = req.body;
@@ -1155,7 +1120,7 @@ app.post("/api/family/add", authenticateToken, (req, res) => {
   });
 });
 
-// 4. Remove a user from family (owner-only)
+// Remove a user from family (owner-only)
 app.delete("/api/family/remove/:username", authenticateToken, (req, res) => {
   const ownerEmail = req.user.email;
   const targetEmail = req.params.username;
@@ -1186,7 +1151,7 @@ app.delete("/api/family/remove/:username", authenticateToken, (req, res) => {
 });
 
 
-// 5. Delete the entire family (owner only)
+// Delete the entire family (owner only)
 app.delete("/api/family/delete/:id", authenticateToken, (req, res) => {
   const ownerEmail = req.user.email;
   const familyID = parseInt(req.params.id, 10);
@@ -1234,7 +1199,7 @@ app.delete("/api/family/delete/:id", authenticateToken, (req, res) => {
   });
 });
 
-// 6. Add a dependent (non-user) to the family
+// Add a dependent (non-user) to the family
 app.post("/api/family/add-dependent", authenticateToken, (req, res) => {
   const email = req.user.email;
   const { fName, lName, mName, birthday } = req.body;
@@ -1301,7 +1266,7 @@ app.post("/api/family/add-dependent", authenticateToken, (req, res) => {
   });
 });
 
-// 7. Get dependents in the family
+// Get dependents in the family
 app.get("/api/family/dependents", authenticateToken, (req, res) => {
   const email = req.user.email;
 
@@ -1327,7 +1292,7 @@ app.get("/api/family/dependents", authenticateToken, (req, res) => {
   });
 });
 
-// 8. Remove a dependent (owner only)
+// Remove a dependent (owner only)
 app.delete("/api/family/remove-dependent/:id", authenticateToken, (req, res) => {
   const email = req.user.email;
   const depID = parseInt(req.params.id, 10);
@@ -1363,7 +1328,7 @@ app.delete("/api/family/remove-dependent/:id", authenticateToken, (req, res) => 
   });
 });
 
-// 9. Sign a dependent up for classes (owner only)
+// Sign a dependent up for classes (owner only)
 app.post("/api/family/dependent/register/:depId/:classId", authenticateToken, (req, res) => {
   const email = req.user.email;
   const depId = parseInt(req.params.depId, 10);
@@ -1428,7 +1393,7 @@ app.post("/api/family/dependent/register/:depId/:classId", authenticateToken, (r
   });
 });
 
-// 10. remove a dependent from a class
+// Remove a dependent from a class
 app.delete("/api/family/dependent/register/:depId/:classId", authenticateToken, (req, res) => {
   const email = req.user.email;
   const depId = parseInt(req.params.depId, 10);
@@ -1451,15 +1416,13 @@ app.delete("/api/family/dependent/register/:depId/:classId", authenticateToken, 
         if (err || this.changes === 0) return res.status(500).json({ error: "Could not remove registration." });
 
         db.run("UPDATE Class SET CurrCapacity = CurrCapacity - 1 WHERE ClassID = ?", [classId]);
-        // db.run(`INSERT INTO Cancelled (ClassID, MemID, NonMemID, DateCancelled, Notified)
-        //         VALUES (?, NULL, NULL, CURRENT_DATE, 0)`, [classId]);
         res.json({ message: "Dependent unregistered from class." });
       });
     });
   });
 });
 
-// 11. Show dependent's registered classes
+// Show dependent's registered classes
 app.get("/api/family/dependent/classes/:depId", authenticateToken, (req, res) => {
   const depId = parseInt(req.params.depId, 10);
   const email = req.user.email;
@@ -1543,7 +1506,6 @@ app.get("/api/cancelled", authenticateToken, (req, res) => {
   });
 });
 
-
 // Dismiss Notifications
 app.delete("/api/cancelled", authenticateToken, (req, res) => {
   const email = req.user.email;
@@ -1576,7 +1538,6 @@ app.delete("/api/cancelled", authenticateToken, (req, res) => {
     });
   });
 });
-
 
 /* ----------------------------------------
     Admin Registration Report by User
@@ -1623,6 +1584,7 @@ app.delete("/api/cancelled", authenticateToken, (req, res) => {
 /* ----------------------------------------
     Admin Registration Report by Class
  ---------------------------------------- */
+
  app.get("/api/classes/search", authenticateToken, (req, res) => {
   if (req.user.role !== "staff") return res.status(403).json({ error: "Access denied" });
 
@@ -1662,7 +1624,10 @@ app.get("/api/classes/:id/roster", authenticateToken, (req, res) => {
 
 app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
 
-//Staff's Employment Timetable
+/* ----------------------------------------
+    Employment Timetable
+ ---------------------------------------- */
+
 app.get("/api/staff/teaching", authenticateToken, (req, res) => {
   const email = req.user.email;
 
@@ -1709,7 +1674,6 @@ app.post("/api/staff/teaching/:id", authenticateToken, (req, res) => {
     FROM Employee
     WHERE MemID = (SELECT MemID FROM Member WHERE Email = ?)
   `;
-
 
   db.get(findEmpSql, [staffEmail], (err, employee) => {
     if (err || !employee) {
