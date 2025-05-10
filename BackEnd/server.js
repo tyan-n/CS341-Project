@@ -136,40 +136,7 @@ app.post("/api/signup", async (req, res) => {
         street.trim(), houseNumber.trim(), city.trim(), state.trim(), zipCode.trim(),
         phone.trim(), username.trim(), hashedPassword, feeValue, acctType
       ];
-      /*db.run(sql, params, function (err) {
-        if (err) {
-          console.error("Error inserting member:", err);
-          return res.status(500).json({ error: "Error inserting member" });
-        }
-
-        const newMemberId = this.lastID;
-        console.log("Member inserted, ID:", newMemberId);
-
-        if (username.trim().endsWith("@ymca.org")) {
-          // Insert into Staff table
-          sqlS = `INSERT INTO Member (
-            FName, LName, MName, SSN, PhoneNumber, Street, HouseNumber, City, State, ZipCode,
-            Birthday, Email, StartDate, Role
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-          
-         paramsS = [
-            fname.trim(), lname.trim(), mname ? mname.trim() : null, birthday.trim(),
-            street.trim(), houseNumber.trim(), city.trim(), state.trim(), zipCode.trim(),
-            phone.trim(), username.trim(), hashedPassword, feeValue, acctType
-          ];
-          db.run(sqlS, paramsS, function (staffErr) {
-            if (staffErr) {
-              console.error("Error inserting staff:", staffErr);
-              return res.status(500).json({ error: "Error inserting staff" });
-            }
-            console.log("Staff record created for member:", newMemberId);
-            return res.json({ message: "Employee member registered successfully", id: newMemberId });
-          });
-        } else {
-          return res.json({ message: "Member registered successfully", id: newMemberId });
-        }
-      });*/
-
+      
     } else if (membershipType === "non-member") {
       sql = `INSERT INTO NonMember (
                 FName, LName, MName, Birthday, Email, PhoneNumber, Password
