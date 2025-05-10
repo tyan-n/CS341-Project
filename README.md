@@ -4,32 +4,30 @@ This project simulates a YMCA registration and class management system. Users ca
 
 ## Features
 
-Secure User Account System:
-   Users can create accounts with secure credentials, log in to manage personal or family registrations, and securely log out when finished.
+- **Secure User Account System**  
+  Users can create accounts with secure credentials, log in to manage personal or family registrations, and securely log out when finished.
 
-Class Browsing and Registration with Capacity Enforcement:
-   Users can browse available classes, view detailed descriptions, and register. Full or canceled classes are clearly marked and cannot be joined.
-   A user will be notified if a class they are registered for has been cancelled upon account login.
+- **Class Browsing and Registration with Capacity Enforcement**  
+  Users can browse available classes, view detailed descriptions, and register for sessions. Full or canceled classes are clearly marked and cannot be joined. Upon login, users are notified if a class they were registered for has been canceled.
 
-Family Account Support: 
-   The Family Owner can create a family group, add or remove dependents, and register them for classes from a single shared account view.
+- **Family Account Support**  
+  Family Owners can create a family group, add or remove dependents, and register them for classes under a shared account.
 
-My Classes Dashboard: 
-   Users can view, track, and cancel their upcoming class registrations through a centralized dashboard.
+- **My Classes Dashboard**  
+  Users can view, track, and cancel their upcoming class registrations through a centralized and easy-to-navigate dashboard.
 
-Employee Tools:
-   Employees can browse class offerings, sign up to teach classes, and view their teaching schedules
+- **Employee Tools**  
+  Employees can:
+  - Browse available classes
+  - Sign up to teach sessions
+  - View and manage their teaching schedules
 
-Administrative Features:
-   Admins have elevated control, including:
-
-   Running detailed reports on users and their registrations
-
-   Managing all users and accounts
-
-   Creating new classes and removing existing ones
-
-   Deactivating user accounts as needed
+- **Administrative Features**  
+  Admins have elevated permissions to:
+  - Run detailed reports on users and their registration history
+  - Manage all user and staff accounts
+  - Create and remove classes as needed
+  - Deactivate user accounts when necessary
 
 ## Technologies Used
 
